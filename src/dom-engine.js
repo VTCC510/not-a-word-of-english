@@ -35,8 +35,8 @@
   const CAMEL_OR_SNAKE_RE = /^(?:[a-z]+[A-Z][A-Za-z0-9]*|[a-z][a-z0-9]*(?:_[a-z0-9]+)+)$/;
   const DOTTED_CODE_RE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:\(\))?$/;
   const KEBAB_SLUG_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
-  const KEYCAP_OR_UNIT_RE = /^(?:[A-Z]|Ctrl|Shift|Alt|Cmd|Option|Meta|Esc|Tab|(?:Ctrl|Shift|Alt|Cmd)\+[^\s]+|\d+(?:px|rem|em|%))$/;
-  const LABEL_WITH_SHORTCUT_RE = /^([A-Za-z][A-Za-z0-9 /&'’-]{0,48}?)(\s+(?:\(?(?:(?:Ctrl|Cmd|Shift|Alt|Option|Meta)\+)+[A-Za-z0-9]+\)?|[⌘⌃⌥⇧]+[A-Za-z0-9]+))$/;
+  const KEYCAP_OR_UNIT_RE = /^(?:[A-Z]|Ctrl|Shift|Alt|Cmd|Option|Meta|Esc|Tab|(?:(?:Ctrl|Shift|Alt|Cmd|Option|Meta)\+)+[^\s]+|[⌘⌃⌥⇧]+[^\s]+|\d+(?:px|rem|em|%))$/;
+  const LABEL_WITH_SHORTCUT_RE = /^([A-Za-z][A-Za-z0-9 /&'’-]{0,48}?)(\s+(?:\(?(?:(?:Ctrl|Cmd|Shift|Alt|Option|Meta)\+)+[^\s()]+\)?|[⌘⌃⌥⇧]+[^\s()]+))$/;
   const POWERSHELL_CMDLET_RE = /^(?:Get|Set|New|Remove|Add|Clear|Copy|Move|Invoke|Start|Stop|Restart|Test|Enable|Disable|Install|Uninstall|Update|Import|Export)-[A-Z][A-Za-z0-9]+(?:\s|$)/;
 
   function isAllowedOrigin(loc) {

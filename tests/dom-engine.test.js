@@ -239,6 +239,15 @@ test('Slash typeahead menu preserves all bare lowercase command/skill identifier
     ['grill-me', 'Interview me to align on a plan.'],
     ['schedule', 'Run an instruction on a recurring schedule or as a one-time timer.'],
     ['teamwork', 'Invoke a team of agents to autonomously tackle large projects.'],
+    ['learn', 'Reflect on recent successes or corrections to capture reusable skills or rules.'],
+    ['boost', 'Invoke the Boost multi-agent orchestrator for complex tasks.'],
+    ['btw', 'Ask a quick question without interrupting the main conversation.'],
+    ['goal', 'Run until the specified goal is completely finished.'],
+    ['compact', 'Compact the conversation now (summarize history to free up the context window).'],
+    [
+      'swarm_monitor',
+      'ONLY for the native-swarm worker whose brief says it is the monitor. On a timer, it checks whether the whole swarm has stalled and calls on the one member who can unstick it. Coordinators and other workers: do not load this.',
+    ],
     [
       'antigravity-guide',
       'Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.',
@@ -683,8 +692,10 @@ test('Text selection popovers, shortcut-suffixed labels, and copy/clipboard popu
   assert.equal(commentItem.textContent, '批注 Ctrl+M');
   assert.equal(toast.textContent, '已复制到剪贴板');
 
-  // 动态行数与 macOS 快捷键后缀测试
+  // 动态行数与 macOS/标点快捷键后缀测试
   const t = createDomTranslator(bundle);
+  assert.equal(t.translateText('Record Audio Ctrl+M').translated, '录制语音 Ctrl+M');
+  assert.equal(t.translateText('Open Settings Ctrl+,').translated, '打开设置 Ctrl+,');
   assert.equal(t.translateText('Add to Chat ⌘L').translated, '添加到对话 ⌘L');
   assert.equal(t.translateText('Copied 5 lines').translated, '已复制 5 行');
   assert.equal(t.translateText('Quote lines 10-20').translated, '引用第 10-20 行');

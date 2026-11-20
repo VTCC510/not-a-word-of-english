@@ -545,6 +545,42 @@
       "replacement": "在对话内或独立产物中渲染交互式 HTML 组件、图表、数据可视化与动态教学演示。"
     },
     {
+      "keywords": ["comprehensive", "customization", "system"],
+      "pattern": "^Comprehensive\\s+guide\\s+and\\s+reference\\s+for\\s+the\\s+Antigravity\\s+Customization\\s+System[\\s\\S]*$",
+      "flags": "",
+      "replacement": "Antigravity 自定义系统完整指南：详解技能、规则、插件、钩子与 MCP 服务器的加载机制与创建方法。"
+    },
+    {
+      "keywords": ["migrates", "servers", "skills"],
+      "pattern": "^Migrates\\s+the\\s+user's\\s+MCP\\s+servers,\\s+skills[\\s\\S]*$",
+      "flags": "",
+      "replacement": "将 Claude Code、Cursor、Codex、Gemini CLI 等工具中的 MCP、技能、指令与配置一键迁移到 Antigravity。"
+    },
+    {
+      "keywords": ["automatically", "migrate", "workflows"],
+      "pattern": "^Automatically\\s+migrate\\s+legacy\\s+workflows\\s+to\\s+modern\\s+skills[\\s\\S]*$",
+      "flags": "",
+      "replacement": "自动将旧版工作流迁移为新版技能（SKILL.md），并安全归档旧工作流文件。"
+    },
+    {
+      "keywords": ["preview", "quota", "swarm"],
+      "pattern": "^\\(Preview\\s*&\\s*Quota\\s+Heavy\\)\\s+Run\\s+a\\s+swarm:[\\s\\S]*$",
+      "flags": "",
+      "replacement": "（预览/高额度消耗）启动智能体集群：多个智能体并行协作并共享留言板，共同攻克可拆分的复杂任务。"
+    },
+    {
+      "keywords": ["native", "swarm", "monitor"],
+      "pattern": "^ONLY\\s+for\\s+the\\s+native-swarm\\s+worker\\s+whose\\s+brief\\s+says\\s+it\\s+is\\s+the\\s+monitor[\\s\\S]*$",
+      "flags": "",
+      "replacement": "（仅限智能体集群监控节点使用）定时检查集群是否停滞，并唤醒可解除阻塞的成员。"
+    },
+    {
+      "keywords": ["discover", "plugin", "panels"],
+      "pattern": "^Discover\\s+UI\\s+plugin\\s+panels\\s+relevant\\s+to\\s+the\\s+current\\s+task[\\s\\S]*$",
+      "flags": "",
+      "replacement": "发现与当前任务相关的 UI 插件面板，并在对话中提供一键打开侧边面板的快捷入口。"
+    },
+    {
       "keywords": ["line", "lines", "selected"],
       "pattern": "^(\\d+)\\s+lines?\\s+selected$",
       "flags": "i",
