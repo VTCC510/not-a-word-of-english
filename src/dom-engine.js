@@ -18,6 +18,7 @@
 (function initNaweDomEngineFactory(globalScope) {
   const MAX_ERRORS = 15;
   const CJK_RE = /[\u4e00-\u9fff]/;
+  const LEADING_CJK_RE = /^[\s\d\p{P}\p{S}]*[\u4e00-\u9fff]/u;
   const ASCII_LETTER_RE = /[A-Za-z]/;
   const SLASH_CMD_ONLY_RE = /^\/[a-z][a-z0-9_-]{0,32}$/i;
   const SLASH_CMD_WITH_DESC_RE = /^(\/[a-z][a-z0-9_-]{0,32})(\s*[-—:：]?\s+)(.+)$/i;
@@ -214,7 +215,9 @@
       if (!ASCII_LETTER_RE.test(rawText)) {
         return { translated: rawText, changed: false, reason: 'no-ascii' };
       }
-      if (CJK_RE.test(rawText)) {
+      // 已以中文或中文标点开头的文本直接微秒短路；
+      // 若以英文开头但内部夹杂中文参数（如含中文路径的命令授权或中文项目名），放行给锚定模板匹配
+      if (CJK_RE.test(rawText) && LEADING_CJK_RE.test(rawText)) {
         return { translated: rawText, changed: false, reason: 'already-cjk' };
       }
 
@@ -261,12 +264,10 @@
         const out = preserveWhitespace(rawText, hit.value);
         return { translated: out, changed: out !== rawText, reason: 'high-risk-exact-ci' };
       }
-      if (!controlOnly) {
-        const hrPatternHit = matchBucketedPatterns(trimmed, highRiskPatterns);
-        if (hrPatternHit) {
-          const out = preserveWhitespace(rawText, hrPatternHit);
-          return { translated: out, changed: out !== rawText, reason: 'high-risk-pattern' };
-        }
+      const hrPatternHit = matchBucketedPatterns(trimmed, highRiskPatterns);
+      if (hrPatternHit) {
+        const out = preserveWhitespace(rawText, hrPatternHit);
+        return { translated: out, changed: out !== rawText, reason: 'high-risk-pattern' };
       }
 
       // 3. L1 精确词条直命中（含长说明与内置技能完整描述，O(1) 极速匹配）
@@ -304,7 +305,7 @@
       }
 
       // 5. L1 短语大小写不敏感查表
-      if (trimmed.length <= 64 && staticLower.has(trimmed.toLowerCase())) {
+      if (!CJK_RE.test(trimmed) && trimmed.length <= 64 && staticLower.has(trimmed.toLowerCase())) {
         const ciHit = staticLower.get(trimmed.toLowerCase());
         const wantBilingual = isHighRisk || bilingualAll;
         const finalText = wantBilingual ? ensureBilingual(ciHit, trimmed) : ciHit;

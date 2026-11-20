@@ -373,20 +373,105 @@ test('High-risk terminal command approval preserves raw command verbatim and enf
   );
   assert.equal(
     reqLine.textContent,
-    '请求授权执行命令：rm -rf ./build (Requesting permission to run rm -rf ./build)'
+    '请求授权执行命令 (Requesting permission to run)：rm -rf ./build'
   );
   assert.equal(opt1.textContent, '是，仅允许这一次 (Yes, allow this time)');
   assert.equal(
     opt2.textContent,
-    "是，且在本次对话中始终允许 'rm -rf ./build' (Yes, and always allow 'rm -rf ./build' in this conversation)"
+    "是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：'rm -rf ./build'"
   );
   assert.equal(
     opt3.textContent,
-    "高风险：是，并永久始终允许 'rm -rf ./build' (Yes, and always allow 'rm -rf ./build')"
+    "高风险：是，并永久始终允许 (Yes, and always allow)：'rm -rf ./build'"
   );
   assert.equal(btnAllow.textContent, '始终允许 (Always Allow)');
   assert.equal(btnDeny.textContent, '拒绝 (Deny)');
   assert.equal(btnClose.textContent, '关闭 (Close)');
+});
+
+test('Complex commands with inner single quotes, Chinese paths, newlines, $env variables, and mixed-language UI templates translate cleanly without loops', () => {
+  const t = createDomTranslator(bundle);
+  const complexCmd =
+    "$env:GCM_INTERACTIVE = 'never'; $env:GIT_TERMINAL_PROMPT = '0'; git -c safe.directory=E:/示例项目 -c http.proxy=http://127.0.0.1:7897 push origin main v1.0.2";
+
+  const opt2Raw = `Yes, and always allow '${complexCmd}' in this conversation`;
+  const opt2Res = t.translateText(opt2Raw);
+  assert.equal(opt2Res.changed, true);
+  assert.equal(
+    opt2Res.translated,
+    `是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：'${complexCmd}'`
+  );
+  // 幂等性校验：二次翻译必须微秒短路，绝不重复包装
+  assert.equal(t.translateText(opt2Res.translated).changed, false);
+
+  const opt3Raw = `Yes, and always allow '${complexCmd}'`;
+  const opt3Res = t.translateText(opt3Raw);
+  assert.equal(opt3Res.changed, true);
+  assert.equal(opt3Res.translated, `高风险：是，并永久始终允许 (Yes, and always allow)：'${complexCmd}'`);
+  assert.equal(t.translateText(opt3Res.translated).changed, false);
+
+  // 多行命令与无单引号目标（如域名/工具授权）
+  const multiLineCmd = "echo '第一行'\ngit status --short";
+  const multiLineRes = t.translateText(`Yes, and always allow '${multiLineCmd}' in this conversation`);
+  assert.equal(multiLineRes.changed, true);
+  assert.equal(
+    multiLineRes.translated,
+    `是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：'${multiLineCmd}'`
+  );
+
+  assert.equal(
+    t.translateText('Yes, and always allow github.com in this conversation').translated,
+    '是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：github.com'
+  );
+  assert.equal(
+    t.translateText('Yes, and always allow "https://example.com" in this workspace').translated,
+    '是，且在当前项目中始终允许 (Yes, and always allow in this workspace)："https://example.com"'
+  );
+
+  // 含中文参数的常规与高风险混合模板
+  assert.equal(t.translateText('Select project, current: 示例项目').translated, '选择项目（当前：示例项目）');
+  assert.equal(t.translateText('Branch, current: 功能分支').translated, 'Git 分支（当前：功能分支）');
+  assert.equal(t.translateText('Search in 示例项目...').translated, '在 示例项目 中搜索...');
+  assert.equal(
+    t.translateText('Delete side question: 菜单翻译').translated,
+    '删除旁白追问：菜单翻译 (Delete side question: 菜单翻译)'
+  );
+  assert.equal(
+    t.translateText('Allow 推送更新到 GitHub?').translated,
+    '是否允许 推送更新到 GitHub？ (Allow 推送更新到 GitHub?)'
+  );
+
+  // 审批卡片即使位于助手消息区域内（controlOnly）且使用 Allow ...? 标题，选项与提交按钮仍可靠双语化
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+  const assistantMsg = new MockElement('div', { 'data-message-role': 'assistant' });
+  const approvalCard = new MockElement('div', { 'data-testid': 'command-approval-card' });
+  const titleEl = new MockElement('div');
+  titleEl.appendChild(new MockText('Allow push update to GitHub?'));
+  const opt1Btn = new MockElement('button');
+  opt1Btn.appendChild(new MockText('Yes, allow this time'));
+  const opt2Btn = new MockElement('button');
+  opt2Btn.appendChild(new MockText(opt2Raw));
+  const opt3Btn = new MockElement('button');
+  opt3Btn.appendChild(new MockText(opt3Raw));
+  const submitBtn = new MockElement('button');
+  submitBtn.appendChild(new MockText('Submit'));
+
+  approvalCard.appendChild(titleEl);
+  approvalCard.appendChild(opt1Btn);
+  approvalCard.appendChild(opt2Btn);
+  approvalCard.appendChild(opt3Btn);
+  approvalCard.appendChild(submitBtn);
+  assistantMsg.appendChild(approvalCard);
+  body.appendChild(assistantMsg);
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(titleEl.textContent, '是否允许 push update to GitHub？ (Allow push update to GitHub?)');
+  assert.equal(opt1Btn.textContent, '是，仅允许这一次 (Yes, allow this time)');
+  assert.equal(opt2Btn.textContent, opt2Res.translated);
+  assert.equal(opt3Btn.textContent, opt3Res.translated);
+  assert.equal(submitBtn.textContent, '提交 (Submit)');
 });
 
 test('Physical immunity sandbox isolates Monaco, xterm, File Viewer code, breadcrumbs, prose, and streaming word spans', () => {

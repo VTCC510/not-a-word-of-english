@@ -294,7 +294,7 @@
     },
     {
       "keywords": ["search"],
-      "pattern": "^Search\\s+in\\s+(.+)\\.{0,3}$",
+      "pattern": "^Search\\s+in\\s+(.+?)(?:\\.{1,3}|…)?$",
       "flags": "i",
       "replacement": "在 $1 中搜索..."
     },
@@ -312,7 +312,7 @@
     },
     {
       "keywords": ["connecting"],
-      "pattern": "^Connecting\\s+to\\s+(.+)\\.{0,3}$",
+      "pattern": "^Connecting\\s+to\\s+(.+?)(?:\\.{1,3}|…)?$",
       "flags": "i",
       "replacement": "正在连接到 $1..."
     },

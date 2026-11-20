@@ -1,6 +1,6 @@
 {
   "name": "not-a-word-of-english",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "安全、高覆盖率、零外部依赖的 Google Antigravity 客户端中文本地化工具（保留指令标识符 + 高风险命令授权强制双语对照）",
   "main": "cli.js",
   "bin": {

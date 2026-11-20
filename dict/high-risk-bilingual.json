@@ -115,7 +115,14 @@
     "Browser Javascript Execution Policy": "浏览器 JavaScript 执行策略 (Browser Javascript Execution Policy)",
     "Controls whether the agent can run custom JavaScript to automate complex browser actions.": "控制智能体是否可在浏览器中执行自定义 JavaScript 以自动化操作 (Controls whether the agent can run custom JavaScript to automate complex browser actions.)",
     "Yes, allow this time": "是，仅允许这一次 (Yes, allow this time)",
+    "Yes, allow once": "是，仅允许这一次 (Yes, allow once)",
+    "Yes, always allow": "高风险：是，始终允许 (Yes, always allow)",
+    "Yes, allow for this conversation": "是，在本次对话中允许 (Yes, allow for this conversation)",
+    "Yes, allow in this conversation": "是，在本次对话中允许 (Yes, allow in this conversation)",
+    "Yes, allow for this session": "是，在本次会话中允许 (Yes, allow for this session)",
+    "Yes, allow for this workspace": "是，在当前工作区中允许 (Yes, allow for this workspace)",
     "No, deny this time": "否，拒绝这一次 (No, deny this time)",
+    "No, deny": "否，拒绝 (No, deny)",
     "Edit permission target": "编辑授权目标命令 (Edit permission target)",
     "(tell the agent what to do instead)": "（拒绝并告诉智能体改做什么 / tell the agent what to do instead）",
     "Confirm Undo": "确认撤销 (Confirm Undo)",
@@ -127,37 +134,85 @@
   "patterns": [
     {
       "keywords": ["requesting", "permission", "run"],
-      "pattern": "^Requesting\\s+permission\\s+to\\s+run\\s+(.+)$",
+      "pattern": "^Requesting\\s+permission\\s+to\\s+run\\s+([\\s\\S]+)$",
       "flags": "i",
-      "replacement": "请求授权执行命令：$1 (Requesting permission to run $1)"
+      "replacement": "请求授权执行命令 (Requesting permission to run)：$1"
+    },
+    {
+      "keywords": ["requesting", "permission"],
+      "pattern": "^Requesting\\s+permission\\s+to\\s+([\\s\\S]+)$",
+      "flags": "i",
+      "replacement": "请求权限授权 (Requesting permission to)：$1"
     },
     {
       "keywords": ["yes", "always", "allow", "conversation"],
-      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([^']+)'\\s+in\\s+this\\s+conversation$",
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+conversation$",
       "flags": "i",
-      "replacement": "是，且在本次对话中始终允许 '$1' (Yes, and always allow '$1' in this conversation)"
+      "replacement": "是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：'$1'"
     },
     {
       "keywords": ["yes", "always", "allow"],
-      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([^']+)'\\s+in\\s+this\\s+(workspace|project)$",
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+(workspace|project)$",
       "flags": "i",
-      "replacement": "是，且在当前项目中始终允许 '$1' (Yes, and always allow '$1' in this $2)"
+      "replacement": "是，且在当前项目中始终允许 (Yes, and always allow in this $2)：'$1'"
+    },
+    {
+      "keywords": ["yes", "always", "allow", "session"],
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+session$",
+      "flags": "i",
+      "replacement": "是，且在当前会话中始终允许 (Yes, and always allow in this session)：'$1'"
     },
     {
       "keywords": ["yes", "always", "allow"],
-      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([^']+)'$",
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'$",
       "flags": "i",
-      "replacement": "高风险：是，并永久始终允许 '$1' (Yes, and always allow '$1')"
+      "replacement": "高风险：是，并永久始终允许 (Yes, and always allow)：'$1'"
+    },
+    {
+      "keywords": ["yes", "always", "allow", "conversation"],
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+conversation$",
+      "flags": "i",
+      "replacement": "是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：$1"
+    },
+    {
+      "keywords": ["yes", "always", "allow"],
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+(workspace|project)$",
+      "flags": "i",
+      "replacement": "是，且在当前项目中始终允许 (Yes, and always allow in this $2)：$1"
+    },
+    {
+      "keywords": ["yes", "always", "allow", "session"],
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+session$",
+      "flags": "i",
+      "replacement": "是，且在当前会话中始终允许 (Yes, and always allow in this session)：$1"
+    },
+    {
+      "keywords": ["yes", "always", "allow"],
+      "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)$",
+      "flags": "i",
+      "replacement": "高风险：是，并永久始终允许 (Yes, and always allow)：$1"
+    },
+    {
+      "keywords": ["yes", "allow", "conversation"],
+      "pattern": "^Yes,\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+conversation$",
+      "flags": "i",
+      "replacement": "是，在本次对话中允许 (Yes, allow in this conversation)：'$1'"
+    },
+    {
+      "keywords": ["yes", "allow", "conversation"],
+      "pattern": "^Yes,\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+conversation$",
+      "flags": "i",
+      "replacement": "是，在本次对话中允许 (Yes, allow in this conversation)：$1"
     },
     {
       "keywords": ["delete", "side"],
-      "pattern": "^Delete\\s+side\\s+question:\\s*(.+)$",
+      "pattern": "^Delete\\s+side\\s+question:\\s*([\\s\\S]+)$",
       "flags": "i",
       "replacement": "删除旁白追问：$1 (Delete side question: $1)"
     },
     {
       "keywords": ["allow", "run"],
-      "pattern": "^Allow\\s+(.+)\\s+to\\s+run\\s+this\\s+command\\??$",
+      "pattern": "^Allow\\s+([\\s\\S]+)\\s+to\\s+run\\s+this\\s+command\\??$",
       "flags": "i",
       "replacement": "是否允许 $1 执行此命令？ (Allow $1 to run this command?)"
     },
@@ -169,7 +224,7 @@
     },
     {
       "keywords": ["always", "allow"],
-      "pattern": "^Always\\s+allow\\s+(.+)$",
+      "pattern": "^Always\\s+allow\\s+([\\s\\S]+)$",
       "flags": "i",
       "replacement": "始终允许 $1 (Always allow $1)"
     },
@@ -181,13 +236,13 @@
     },
     {
       "keywords": ["allow", "access"],
-      "pattern": "^Allow\\s+access\\s+to\\s+(.+)\\??$",
+      "pattern": "^Allow\\s+access\\s+to\\s+([\\s\\S]+)\\??$",
       "flags": "i",
       "replacement": "是否允许访问 $1？ (Allow access to $1?)"
     },
     {
       "keywords": ["allow"],
-      "pattern": "^Allow\\s+(.+)\\?$",
+      "pattern": "^Allow\\s+([\\s\\S]+)\\?$",
       "flags": "",
       "replacement": "是否允许 $1？ (Allow $1?)"
     }
