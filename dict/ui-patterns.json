@@ -1,0 +1,506 @@
+{
+  "_meta": {
+    "description": "带动态数字、时间、计数或状态的界面文案模板规则（按 keywords 分桶索引以保障 O(1) 高性能）",
+    "version": "1.1.0"
+  },
+  "patterns": [
+    {
+      "keywords": ["file", "files"],
+      "pattern": "^(\\d+)\\s+files?\\s+changed$",
+      "flags": "i",
+      "replacement": "已变更 $1 个文件"
+    },
+    {
+      "keywords": ["file", "files"],
+      "pattern": "^(\\d+)\\s+files?\\s+selected$",
+      "flags": "i",
+      "replacement": "已选择 $1 个文件"
+    },
+    {
+      "keywords": ["file", "files"],
+      "pattern": "^(\\d+)\\s+files?\\s+attached$",
+      "flags": "i",
+      "replacement": "已附加 $1 个文件"
+    },
+    {
+      "keywords": ["file", "files"],
+      "pattern": "^View\\s+(\\d+)\\s+files?$",
+      "flags": "i",
+      "replacement": "查看 $1 个文件"
+    },
+    {
+      "keywords": ["change", "changes"],
+      "pattern": "^(\\d+)\\s+changes?$",
+      "flags": "i",
+      "replacement": "$1 处变更"
+    },
+    {
+      "keywords": ["line", "lines"],
+      "pattern": "^(\\d+)\\s+lines?\\s+added$",
+      "flags": "i",
+      "replacement": "新增 $1 行"
+    },
+    {
+      "keywords": ["line", "lines"],
+      "pattern": "^(\\d+)\\s+lines?\\s+removed$",
+      "flags": "i",
+      "replacement": "删除 $1 行"
+    },
+    {
+      "keywords": ["line", "lines"],
+      "pattern": "^(\\d+)\\s+lines?\\s+hidden$",
+      "flags": "i",
+      "replacement": "已折叠 $1 行"
+    },
+    {
+      "keywords": ["line", "lines"],
+      "pattern": "^Show\\s+(\\d+)\\s+more\\s+lines?$",
+      "flags": "i",
+      "replacement": "再显示 $1 行"
+    },
+    {
+      "keywords": ["step"],
+      "pattern": "^Step\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "第 $1 / $2 步"
+    },
+    {
+      "keywords": ["step", "steps"],
+      "pattern": "^(\\d+)\\s+steps?\\s+completed$",
+      "flags": "i",
+      "replacement": "已完成 $1 个步骤"
+    },
+    {
+      "keywords": ["of"],
+      "pattern": "^(\\d+)\\s+of\\s+(\\d+)\\s+results?$",
+      "flags": "i",
+      "replacement": "第 $1 / $2 条结果"
+    },
+    {
+      "keywords": ["of"],
+      "pattern": "^(\\d+)\\s+of\\s+(\\d+)\\s+selected$",
+      "flags": "i",
+      "replacement": "已选择 $1 / $2 项"
+    },
+    {
+      "keywords": ["showing"],
+      "pattern": "^Showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "正在显示 $1 / $2 项"
+    },
+    {
+      "keywords": ["result", "results"],
+      "pattern": "^(\\d+)\\s+results?$",
+      "flags": "i",
+      "replacement": "$1 条结果"
+    },
+    {
+      "keywords": ["match", "matches"],
+      "pattern": "^(\\d+)\\s+match(?:es)?$",
+      "flags": "i",
+      "replacement": "$1 处匹配"
+    },
+    {
+      "keywords": ["item", "items"],
+      "pattern": "^(\\d+)\\s+items?$",
+      "flags": "i",
+      "replacement": "$1 个项目"
+    },
+    {
+      "keywords": ["conversation", "conversations"],
+      "pattern": "^(\\d+)\\s+conversations?$",
+      "flags": "i",
+      "replacement": "$1 个对话"
+    },
+    {
+      "keywords": ["message", "messages"],
+      "pattern": "^(\\d+)\\s+messages?$",
+      "flags": "i",
+      "replacement": "$1 条消息"
+    },
+    {
+      "keywords": ["agent", "agents"],
+      "pattern": "^(\\d+)\\s+agents?\\s+running$",
+      "flags": "i",
+      "replacement": "$1 个智能体运行中"
+    },
+    {
+      "keywords": ["subagent", "subagents"],
+      "pattern": "^(\\d+)\\s+subagents?\\s+running$",
+      "flags": "i",
+      "replacement": "$1 个子智能体运行中"
+    },
+    {
+      "keywords": ["task", "tasks"],
+      "pattern": "^(\\d+)\\s+background\\s+tasks?$",
+      "flags": "i",
+      "replacement": "$1 个后台任务"
+    },
+    {
+      "keywords": ["task", "tasks"],
+      "pattern": "^(\\d+)\\s+active\\s+tasks?$",
+      "flags": "i",
+      "replacement": "$1 个进行中任务"
+    },
+    {
+      "keywords": ["task", "tasks"],
+      "pattern": "^(\\d+)\\s+tasks?\\s+completed$",
+      "flags": "i",
+      "replacement": "已完成 $1 个任务"
+    },
+    {
+      "keywords": ["tool", "tools"],
+      "pattern": "^(\\d+)\\s+tool\\s+calls?$",
+      "flags": "i",
+      "replacement": "$1 次工具调用"
+    },
+    {
+      "keywords": ["plugin", "plugins"],
+      "pattern": "^(\\d+)\\s+plugins?\\s+installed$",
+      "flags": "i",
+      "replacement": "已安装 $1 个插件"
+    },
+    {
+      "keywords": ["error", "errors"],
+      "pattern": "^(\\d+)\\s+errors?$",
+      "flags": "i",
+      "replacement": "$1 个错误"
+    },
+    {
+      "keywords": ["warning", "warnings"],
+      "pattern": "^(\\d+)\\s+warnings?$",
+      "flags": "i",
+      "replacement": "$1 条警告"
+    },
+    {
+      "keywords": ["unread"],
+      "pattern": "^(\\d+)\\s+unread$",
+      "flags": "i",
+      "replacement": "$1 条未读"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*s(?:ec(?:ond)?s?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 秒前"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 分钟前"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*h(?:ours?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 小时前"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*d(?:ays?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 天前"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*w(?:eeks?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 周前"
+    },
+    {
+      "keywords": ["ago"],
+      "pattern": "^(\\d+)\\s*mo(?:nths?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 个月前"
+    },
+    {
+      "keywords": ["updated"],
+      "pattern": "^Updated\\s+(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 分钟前更新"
+    },
+    {
+      "keywords": ["updated"],
+      "pattern": "^Updated\\s+(\\d+)\\s*h(?:ours?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 小时前更新"
+    },
+    {
+      "keywords": ["updated"],
+      "pattern": "^Updated\\s+(\\d+)\\s*d(?:ays?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 天前更新"
+    },
+    {
+      "keywords": ["updated"],
+      "pattern": "^Updated\\s+just\\s+now$",
+      "flags": "i",
+      "replacement": "刚刚更新"
+    },
+    {
+      "keywords": ["edited"],
+      "pattern": "^Edited\\s+(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 分钟前编辑"
+    },
+    {
+      "keywords": ["edited"],
+      "pattern": "^Edited\\s+(\\d+)\\s*h(?:ours?)?\\s+ago$",
+      "flags": "i",
+      "replacement": "$1 小时前编辑"
+    },
+    {
+      "keywords": ["created"],
+      "pattern": "^Created\\s+(\\d+)\\s*([smhd])\\s+ago$",
+      "flags": "i",
+      "replacement": "创建于 $1$2 前"
+    },
+    {
+      "keywords": ["thought"],
+      "pattern": "^Thought\\s+for\\s+(\\d+(?:\\.\\d+)?)\\s*s(?:ec(?:ond)?s?)?$",
+      "flags": "i",
+      "replacement": "已思考 $1 秒"
+    },
+    {
+      "keywords": ["thought"],
+      "pattern": "^Thought\\s+for\\s+(\\d+)\\s*m(?:in)?\\s+(\\d+)\\s*s$",
+      "flags": "i",
+      "replacement": "已思考 $1 分 $2 秒"
+    },
+    {
+      "keywords": ["thought"],
+      "pattern": "^Thought\\s+for\\s+less\\s+than\\s+a\\s+second$",
+      "flags": "i",
+      "replacement": "已思考不到 1 秒"
+    },
+    {
+      "keywords": ["ran", "completed"],
+      "pattern": "^(?:Ran|Completed)\\s+in\\s+(\\d+(?:\\.\\d+)?)\\s*s(?:ec(?:ond)?s?)?$",
+      "flags": "i",
+      "replacement": "耗时 $1 秒完成"
+    },
+    {
+      "keywords": ["ran", "completed"],
+      "pattern": "^(?:Ran|Completed)\\s+in\\s+(\\d+)\\s*ms$",
+      "flags": "i",
+      "replacement": "耗时 $1 毫秒完成"
+    },
+    {
+      "keywords": ["context"],
+      "pattern": "^(\\d+)%\\s+context\\s+used$",
+      "flags": "i",
+      "replacement": "上下文已使用 $1%"
+    },
+    {
+      "keywords": ["search"],
+      "pattern": "^Search\\s+in\\s+(.+)\\.{0,3}$",
+      "flags": "i",
+      "replacement": "在 $1 中搜索..."
+    },
+    {
+      "keywords": ["setting", "wsl"],
+      "pattern": "^Setting\\s+up\\s+WSL:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "正在配置 WSL：$1"
+    },
+    {
+      "keywords": ["connected"],
+      "pattern": "^Connected\\s+to\\s+(.+)$",
+      "flags": "i",
+      "replacement": "已连接到 $1"
+    },
+    {
+      "keywords": ["connecting"],
+      "pattern": "^Connecting\\s+to\\s+(.+)\\.{0,3}$",
+      "flags": "i",
+      "replacement": "正在连接到 $1..."
+    },
+    {
+      "keywords": ["version"],
+      "pattern": "^Version\\s+(v?\\d+\\.\\d+(?:\\.\\d+)?.*)$",
+      "flags": "i",
+      "replacement": "版本 $1"
+    },
+    {
+      "keywords": ["turn"],
+      "pattern": "^Turn\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "第 $1 / $2 轮对话"
+    },
+    {
+      "keywords": ["worked"],
+      "pattern": "^Worked\\s+for\\s+(\\d+)m$",
+      "flags": "i",
+      "replacement": "已持续工作 $1 分钟"
+    },
+    {
+      "keywords": ["worked"],
+      "pattern": "^Worked\\s+for\\s+(\\d+)s$",
+      "flags": "i",
+      "replacement": "已持续工作 $1 秒"
+    },
+    {
+      "keywords": ["worked"],
+      "pattern": "^Worked\\s+for\\s+(\\d+)h\\s+(\\d+)m$",
+      "flags": "i",
+      "replacement": "已持续工作 $1 小时 $2 分钟"
+    },
+    {
+      "keywords": ["worked"],
+      "pattern": "^Worked\\s+for\\s+(\\d+)h$",
+      "flags": "i",
+      "replacement": "已持续工作 $1 小时"
+    },
+    {
+      "keywords": ["load", "messages"],
+      "pattern": "^Load\\s+older\\s+messages,\\s+showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "加载更早的消息（当前显示 $1 / $2 条）"
+    },
+    {
+      "keywords": ["lines", "added"],
+      "pattern": "^(\\d+)\\s+lines?\\s+added,\\s+(\\d+)\\s+lines?\\s+removed$",
+      "flags": "i",
+      "replacement": "新增 $1 行，删除 $2 行"
+    },
+    {
+      "keywords": ["select", "model"],
+      "pattern": "^Select\\s+model,\\s+current:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "选择模型（当前：$1）"
+    },
+    {
+      "keywords": ["permissions", "preset"],
+      "pattern": "^Agent\\s+permissions\\s+preset\\s+selector,\\s+current:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "智能体权限预设（当前：$1）"
+    },
+    {
+      "keywords": ["select", "project"],
+      "pattern": "^Select\\s+project,\\s+current:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "选择项目（当前：$1）"
+    },
+    {
+      "keywords": ["branch"],
+      "pattern": "^Branch,\\s+current:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "Git 分支（当前：$1）"
+    },
+    {
+      "keywords": ["plan"],
+      "pattern": "^Your\\s+Plan:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "当前方案：$1"
+    },
+    {
+      "keywords": ["fold"],
+      "pattern": "^Fold\\s+lines\\s+(\\d+)-(\\d+)$",
+      "flags": "i",
+      "replacement": "折叠第 $1-$2 行"
+    },
+    {
+      "keywords": ["breakdowns"],
+      "pattern": "^Show\\s+(\\d+)\\s+breakdowns?$",
+      "flags": "i",
+      "replacement": "展开 $1 项明细"
+    },
+    {
+      "keywords": ["skills", "tokens"],
+      "pattern": "^Skills:\\s*(\\d+)\\s+tokens?$",
+      "flags": "i",
+      "replacement": "技能占用：$1 Tokens"
+    },
+    {
+      "keywords": ["feedback"],
+      "pattern": "^Send\\s+feedback\\s+as\\s+(.+@.+)$",
+      "flags": "i",
+      "replacement": "以 $1 身份发送反馈"
+    },
+    {
+      "keywords": ["shortcut"],
+      "pattern": "^Remove\\s+shortcut\\s+(.+)\\s+for\\s+(.+)$",
+      "flags": "",
+      "replacement": "移除快捷键 $1（$2）"
+    },
+    {
+      "keywords": ["shortcut"],
+      "pattern": "^Shortcut\\s+(.+)\\s+for\\s+(.+)$",
+      "flags": "",
+      "replacement": "快捷键 $1（$2）"
+    },
+    {
+      "keywords": ["shortcut"],
+      "pattern": "^Add\\s+shortcut\\s+for\\s+(.+)$",
+      "flags": "",
+      "replacement": "为「$1」添加快捷键"
+    },
+    {
+      "keywords": ["m"],
+      "pattern": "^(\\d+)m$",
+      "flags": "",
+      "replacement": "$1分钟"
+    },
+    {
+      "keywords": ["h"],
+      "pattern": "^(\\d+)h$",
+      "flags": "",
+      "replacement": "$1小时"
+    },
+    {
+      "keywords": ["d"],
+      "pattern": "^(\\d+)d$",
+      "flags": "",
+      "replacement": "$1天"
+    },
+    {
+      "keywords": ["older", "messages"],
+      "pattern": "^No\\s+more\\s+older\\s+messages,\\s+showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "没有更早的消息了（当前显示全部 $1 / $2 条）"
+    },
+    {
+      "keywords": ["resets"],
+      "pattern": "^Resets\\s+in\\s+(\\d+)d\\s+(\\d+)h$",
+      "flags": "i",
+      "replacement": "将在 $1 天 $2 小时后重置"
+    },
+    {
+      "keywords": ["resets"],
+      "pattern": "^Resets\\s+in\\s+(\\d+)h\\s+(\\d+)m$",
+      "flags": "i",
+      "replacement": "将在 $1 小时 $2 分钟后重置"
+    },
+    {
+      "keywords": ["resets"],
+      "pattern": "^Resets\\s+in\\s+(\\d+)m$",
+      "flags": "i",
+      "replacement": "将在 $1 分钟后重置"
+    },
+    {
+      "keywords": ["weekly", "limit", "refresh"],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+days?,\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分每周限额，将于 $1 天 $2 小时后完全重置。"
+    },
+    {
+      "keywords": ["limit", "refresh", "minutes"],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+5-hour\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分 5 小时限额，将于 $1 小时 $2 分钟后完全重置。"
+    },
+    {
+      "keywords": ["weekly", "limit"],
+      "pattern": "^(.+)\\s+Weekly\\s+Limit$",
+      "flags": "",
+      "replacement": "$1 每周限额"
+    },
+    {
+      "keywords": ["hour", "limit"],
+      "pattern": "^(.+)\\s+5-[Hh]our\\s+Limit$",
+      "flags": "",
+      "replacement": "$1 5 小时限额"
+    }
+  ]
+}

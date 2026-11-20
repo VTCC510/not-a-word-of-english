@@ -1,0 +1,1092 @@
+'use strict';
+
+/**
+ * src/dom-engine.js
+ * not-a-word-of-english 渲染层安全翻译引擎（零外部依赖、自包含、兼容 sandboxed preload）。
+ *
+ * 核心安全机制：
+ * 1. Origin 严格隔离：仅在 Antigravity 本地 Hub UI / 引导页生效，绝不污染内置浏览器外部网页。
+ * 2. 两级物理免疫沙盒：
+ *    - 硬免疫区（Monaco 代码编辑器 / Diff / xterm 终端 / pre / code / contenteditable / 路径导航）：100% 锁定，绝不穿透；
+ *    - 正文免疫区（AI 对话正文 / 流式逐词片段 / 文件查看器代码区 / 文件树 / Git 日志）：正文锁定，仅对明确的 UI 按钮放行。
+ * 3. 斜杠指令标识符保护：/goal、/grill-me、/teamwork 等指令原词强制锁定，绝不改写。
+ * 4. 高风险与终端授权强制双语对照：涉及命令执行、沙盒外运行、删除、覆盖、授权的提示与按钮强制保留原英文。
+ * 5. React 零崩溃 + 右下角悬浮语言切换按钮 + 异常自动熔断：绝不增删 DOM 结构，只修改文本值与白名单属性；
+ *    通过右下角可拖动悬浮按钮免重启切换「标准中文 / 中英对照 / 英文原版」，异常超限自动恢复英文原版。
+ */
+
+(function initNaweDomEngineFactory(globalScope) {
+  const MAX_ERRORS = 15;
+  const CJK_RE = /[\u4e00-\u9fff]/;
+  const ASCII_LETTER_RE = /[A-Za-z]/;
+  const SLASH_CMD_ONLY_RE = /^\/[a-z][a-z0-9_-]{0,32}$/i;
+  const SLASH_CMD_WITH_DESC_RE = /^(\/[a-z][a-z0-9_-]{0,32})(\s*[-—:：]?\s+)(.+)$/i;
+
+  const URL_OR_EMAIL_RE = /^(?:https?:\/\/|wss?:\/\/|file:\/\/|mailto:|[^\s@]+@[^\s@]+\.[^\s@]+$)/i;
+  const WIN_PATH_RE = /^[A-Za-z]:[\\/]/;
+  const UNIX_OR_REL_PATH_RE = /^(?:~\/|\.\.?\/|\/(?:usr|etc|var|opt|tmp|home|Users|Applications|System|Library|bin|dev)\b)/;
+  const FILE_WITH_EXT_RE = /^[\w./\\-]+\.(?:js|cjs|mjs|ts|tsx|jsx|json|md|txt|yml|yaml|toml|ini|env|sh|bash|zsh|bat|cmd|ps1|py|go|rs|java|c|cpp|h|css|scss|html|xml|svg|png|jpg|jpeg|webp|pdf|asar|bak|exe|dll|node|lock|log)$/i;
+  const SEMVER_RE = /^v?\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?$/;
+  const ENV_VAR_RE = /^(?:\$\{?[A-Z_][A-Z0-9_]*\}?|%[A-Z_][A-Z0-9_]*%)$/;
+  const CLI_FLAG_RE = /^--?[a-zA-Z0-9][a-zA-Z0-9_-]*(?:=.*)?$/;
+  const SHELL_OPERATOR_RE = /(?:&&|\|\||>>?|2>&1|\$\(|`[^`]+`|\s\|\s)/;
+  const CAMEL_OR_SNAKE_RE = /^(?:[a-z]+[A-Z][A-Za-z0-9]*|[a-z][a-z0-9]*(?:_[a-z0-9]+)+)$/;
+  const DOTTED_CODE_RE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:\(\))?$/;
+  const KEBAB_SLUG_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
+  const KEYCAP_OR_UNIT_RE = /^(?:[A-Z]|Ctrl|Shift|Alt|Cmd|Option|Meta|Esc|Tab|(?:Ctrl|Shift|Alt|Cmd)\+[^\s]+|\d+(?:px|rem|em|%))$/;
+  const POWERSHELL_CMDLET_RE = /^(?:Get|Set|New|Remove|Add|Clear|Copy|Move|Invoke|Start|Stop|Restart|Test|Enable|Disable|Install|Uninstall|Update|Import|Export)-[A-Z][A-Za-z0-9]+(?:\s|$)/;
+
+  function isAllowedOrigin(loc) {
+    if (!loc) return true;
+    const proto = String(loc.protocol || '').toLowerCase();
+    const host = String(loc.hostname || '').toLowerCase();
+    if (proto === 'file:' || proto === 'data:' || proto === 'antigravity:' || proto === 'app:' || proto === 'about:') {
+      return true;
+    }
+    if (proto === 'http:' || proto === 'https:') {
+      return host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1';
+    }
+    return false;
+  }
+
+  function extractKeywords(text) {
+    const words = String(text || '').toLowerCase().match(/[a-z]+/g);
+    return words ? new Set(words) : new Set();
+  }
+
+  function compileBucketedPatterns(list) {
+    const buckets = new Map();
+    const fallback = [];
+    if (!Array.isArray(list)) return { buckets, fallback };
+
+    for (const item of list) {
+      if (!item || typeof item.pattern !== 'string' || typeof item.replacement !== 'string') continue;
+      let regex;
+      try {
+        regex = new RegExp(item.pattern, item.flags || '');
+      } catch (_) {
+        continue;
+      }
+      const rule = { regex, replacement: item.replacement };
+      const kws = Array.isArray(item.keywords) ? item.keywords : [];
+      if (kws.length === 0) {
+        fallback.push(rule);
+      } else {
+        for (const kw of kws) {
+          const key = String(kw).toLowerCase();
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key).push(rule);
+        }
+      }
+    }
+    return { buckets, fallback };
+  }
+
+  function matchBucketedPatterns(trimmed, compiled) {
+    const words = extractKeywords(trimmed);
+    const tried = new Set();
+
+    for (const word of words) {
+      const list = compiled.buckets.get(word);
+      if (!list) continue;
+      for (const rule of list) {
+        if (tried.has(rule)) continue;
+        tried.add(rule);
+        if (rule.regex.test(trimmed)) {
+          return trimmed.replace(rule.regex, rule.replacement);
+        }
+      }
+    }
+    for (const rule of compiled.fallback) {
+      if (rule.regex.test(trimmed)) {
+        return trimmed.replace(rule.regex, rule.replacement);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 构建纯函数级文本翻译与安全防护内核。
+   */
+  function createDomTranslator(bundle) {
+    const safe = bundle && typeof bundle === 'object' ? bundle : {};
+    const rules = safe.sandboxRules || {};
+    const highRisk = safe.highRiskBilingual || {};
+    const uiStatic = safe.uiStatic || {};
+    const uiPatterns = safe.uiPatterns || {};
+
+    const skipTags = new Set((rules.skipTags || []).map((t) => String(t).toUpperCase()));
+    const attributeOnlyTags = new Set(
+      (rules.attributeOnlyTags || ['INPUT', 'TEXTAREA']).map((t) => String(t).toUpperCase())
+    );
+    const allowedAttributes = Array.isArray(rules.allowedAttributes)
+      ? rules.allowedAttributes
+      : ['placeholder', 'title', 'aria-label', 'data-tooltip'];
+    const hardImmuneSelectors = Array.isArray(rules.hardImmuneSelectors) ? rules.hardImmuneSelectors : [];
+    const proseImmuneSelectors = Array.isArray(rules.proseImmuneSelectors) ? rules.proseImmuneSelectors : [];
+    const controlPenetrationSelectors = Array.isArray(rules.controlPenetrationSelectors)
+      ? rules.controlPenetrationSelectors
+      : ['button', '[role="button"]'];
+    const highRiskContainerSelectors = Array.isArray(rules.highRiskContainerSelectors)
+      ? rules.highRiskContainerSelectors
+      : ['[role="dialog"]', '[role="alertdialog"]'];
+    const highRiskKeywords = (rules.highRiskKeywords || []).map((k) => String(k).toLowerCase());
+    const preservedSlashCommands = new Set(
+      (rules.preservedSlashCommands || []).map((c) => String(c).toLowerCase().replace(/^\//, ''))
+    );
+    const strictBareCommandSlugs = new Set(
+      (rules.strictBareCommandSlugs || ['goal', 'grill-me', 'teamwork', 'compact', 'boost', 'init']).map(
+        (c) => String(c).toLowerCase().replace(/^\//, '')
+      )
+    );
+    const preservedAcronyms = new Set((rules.preservedAcronyms || []).map((a) => String(a).toUpperCase()));
+    const shellCommandPrefixes = new Set((rules.shellCommandPrefixes || []).map((p) => String(p).toLowerCase()));
+
+    const highRiskExact = new Map(Object.entries(highRisk.exact || {}));
+    const highRiskLower = new Map();
+    for (const [k, v] of highRiskExact.entries()) {
+      const low = k.toLowerCase();
+      if (!highRiskLower.has(low)) highRiskLower.set(low, { origKey: k, value: v });
+    }
+    const highRiskPatterns = compileBucketedPatterns(highRisk.patterns);
+
+    const staticExact = new Map(Object.entries(uiStatic.exact || {}));
+    const staticLower = new Map();
+    for (const [k, v] of staticExact.entries()) {
+      const low = k.toLowerCase();
+      if (!staticLower.has(low)) staticLower.set(low, v);
+    }
+    const compiledUiPatterns = compileBucketedPatterns(uiPatterns.patterns);
+
+    function looksLikeCodeOrCommand(trimmed) {
+      if (!trimmed) return true;
+      if (trimmed.length > 320) return true;
+      if (trimmed.includes('\n')) return true;
+      if (URL_OR_EMAIL_RE.test(trimmed)) return true;
+      if (WIN_PATH_RE.test(trimmed) || UNIX_OR_REL_PATH_RE.test(trimmed)) return true;
+      if (FILE_WITH_EXT_RE.test(trimmed)) return true;
+      if (SEMVER_RE.test(trimmed) || ENV_VAR_RE.test(trimmed) || CLI_FLAG_RE.test(trimmed)) return true;
+      if (SHELL_OPERATOR_RE.test(trimmed)) return true;
+      if (CAMEL_OR_SNAKE_RE.test(trimmed) || DOTTED_CODE_RE.test(trimmed)) return true;
+      if (KEBAB_SLUG_RE.test(trimmed) || KEYCAP_OR_UNIT_RE.test(trimmed)) return true;
+      if (preservedAcronyms.has(trimmed)) return true;
+      if (POWERSHELL_CMDLET_RE.test(trimmed)) return true;
+      if (trimmed === trimmed.toLowerCase() && strictBareCommandSlugs.has(trimmed)) return true;
+
+      const parts = trimmed.split(/\s+/);
+      if (parts.length >= 2) {
+        const first = parts[0];
+        if (first === first.toLowerCase() && shellCommandPrefixes.has(first)) {
+          if (!staticExact.has(trimmed) && !highRiskExact.has(trimmed)) {
+            return true;
+          }
+        }
+      }
+
+      if (/[{}[\];]/.test(trimmed) && !staticExact.has(trimmed) && !highRiskExact.has(trimmed)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function preserveWhitespace(raw, translatedCore) {
+      const m = raw.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      if (!m) return translatedCore;
+      return `${m[1]}${translatedCore}${m[3]}`;
+    }
+
+    function ensureBilingual(zhText, origEnglish) {
+      if (ASCII_LETTER_RE.test(zhText) && zhText.toLowerCase().includes(origEnglish.toLowerCase())) {
+        return zhText;
+      }
+      return `${zhText} (${origEnglish})`;
+    }
+
+    function translateText(rawText, ctx) {
+      if (typeof rawText !== 'string' || !rawText) {
+        return { translated: rawText, changed: false, reason: 'empty' };
+      }
+      if (!ASCII_LETTER_RE.test(rawText)) {
+        return { translated: rawText, changed: false, reason: 'no-ascii' };
+      }
+      if (CJK_RE.test(rawText)) {
+        return { translated: rawText, changed: false, reason: 'already-cjk' };
+      }
+
+      const trimmed = rawText.trim();
+      if (!trimmed) {
+        return { translated: rawText, changed: false, reason: 'whitespace' };
+      }
+
+      const isHighRisk = Boolean(ctx && ctx.isHighRisk);
+      const controlOnly = Boolean(ctx && ctx.controlOnly);
+      const precededBySlash = Boolean(ctx && ctx.precededBySlash);
+      const bilingualAll = Boolean(ctx && ctx.bilingualAll);
+
+      // 1. 斜杠指令标识符强制保护（/goal、/grill-me、/teamwork 等及紧跟 "/" 的拆分节点）
+      if (SLASH_CMD_ONLY_RE.test(trimmed)) {
+        return { translated: rawText, changed: false, reason: 'slash-command-locked' };
+      }
+      if (precededBySlash && preservedSlashCommands.has(trimmed.toLowerCase())) {
+        return { translated: rawText, changed: false, reason: 'slash-split-command-locked' };
+      }
+      const slashDescMatch = trimmed.match(SLASH_CMD_WITH_DESC_RE);
+      if (slashDescMatch) {
+        const cmdToken = slashDescMatch[1];
+        const sep = slashDescMatch[2];
+        const desc = slashDescMatch[3].trim();
+        const descZh = staticExact.get(desc) || staticLower.get(desc.toLowerCase());
+        if (descZh) {
+          const out = preserveWhitespace(rawText, `${cmdToken}${sep}${descZh}`);
+          return { translated: out, changed: out !== rawText, reason: 'slash-desc-translated' };
+        }
+        return { translated: rawText, changed: false, reason: 'slash-command-preserved' };
+      }
+
+      // 2. 高风险双语词典优先（强制保留英文原文对照）
+      if (highRiskExact.has(trimmed)) {
+        const out = preserveWhitespace(rawText, highRiskExact.get(trimmed));
+        return { translated: out, changed: out !== rawText, reason: 'high-risk-exact' };
+      }
+      if (trimmed.length <= 80 && highRiskLower.has(trimmed.toLowerCase())) {
+        const hit = highRiskLower.get(trimmed.toLowerCase());
+        const out = preserveWhitespace(rawText, hit.value);
+        return { translated: out, changed: out !== rawText, reason: 'high-risk-exact-ci' };
+      }
+      if (!controlOnly) {
+        const hrPatternHit = matchBucketedPatterns(trimmed, highRiskPatterns);
+        if (hrPatternHit) {
+          const out = preserveWhitespace(rawText, hrPatternHit);
+          return { translated: out, changed: out !== rawText, reason: 'high-risk-pattern' };
+        }
+      }
+
+      // 3. 代码 / 路径 / 终端命令行启发式护盾
+      if (looksLikeCodeOrCommand(trimmed)) {
+        return { translated: rawText, changed: false, reason: 'code-or-command-shielded' };
+      }
+
+      // 4. L1 静态精确查表（O(1)）
+      let staticHit = staticExact.get(trimmed);
+      if (staticHit === undefined && trimmed.length <= 64) {
+        staticHit = staticLower.get(trimmed.toLowerCase());
+      }
+      if (staticHit !== undefined) {
+        const wantBilingual = isHighRisk || bilingualAll;
+        const finalText = wantBilingual ? ensureBilingual(staticHit, trimmed) : staticHit;
+        const out = preserveWhitespace(rawText, finalText);
+        return {
+          translated: out,
+          changed: out !== rawText,
+          reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-static' : 'static-exact',
+        };
+      }
+
+      if (controlOnly) {
+        return { translated: rawText, changed: false, reason: 'control-only-miss' };
+      }
+
+      // 5. L2 关键词分桶动态模板匹配
+      const patternHit = matchBucketedPatterns(trimmed, compiledUiPatterns);
+      if (patternHit) {
+        const wantBilingual = isHighRisk || bilingualAll;
+        const finalText = wantBilingual ? ensureBilingual(patternHit, trimmed) : patternHit;
+        const out = preserveWhitespace(rawText, finalText);
+        return {
+          translated: out,
+          changed: out !== rawText,
+          reason: isHighRisk ? 'high-risk-pattern-upgraded' : bilingualAll ? 'bilingual-pattern' : 'ui-pattern',
+        };
+      }
+
+      return { translated: rawText, changed: false, reason: 'miss' };
+    }
+
+    function containsHighRiskKeyword(text) {
+      if (!text) return false;
+      const lower = String(text).toLowerCase();
+      for (const kw of highRiskKeywords) {
+        if (lower.includes(kw)) return true;
+      }
+      return false;
+    }
+
+    return {
+      skipTags,
+      attributeOnlyTags,
+      allowedAttributes,
+      hardImmuneSelectors,
+      proseImmuneSelectors,
+      controlPenetrationSelectors,
+      highRiskContainerSelectors,
+      preservedSlashCommands,
+      strictBareCommandSlugs,
+      looksLikeCodeOrCommand,
+      containsHighRiskKeyword,
+      translateText,
+    };
+  }
+
+  /**
+   * 在浏览器 / Electron 渲染进程 DOM 上安装安全翻译引擎。
+   */
+  function installDomEngine(win, bundle, options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const doc = win && win.document;
+    if (!win || !doc) return { installed: false, reason: 'no-document' };
+
+    if (!opts.bypassOriginCheck && !isAllowedOrigin(win.location)) {
+      return { installed: false, reason: 'disallowed-origin' };
+    }
+
+    const ENGINE_FLAG = '__naweDomEngineController__';
+    if (win[ENGINE_FLAG]) {
+      return { installed: false, reason: 'already-installed', controller: win[ENGINE_FLAG] };
+    }
+
+    const translator = createDomTranslator(bundle);
+    const hardSel = translator.hardImmuneSelectors.join(', ');
+    const proseSel = translator.proseImmuneSelectors.join(', ');
+    const controlSel = translator.controlPenetrationSelectors.join(', ');
+    const highRiskSel = translator.highRiskContainerSelectors.join(', ');
+
+    const textRecords = new WeakMap();
+    const attrRecords = new WeakMap();
+    const observedRoots = new WeakSet();
+    const activeObservers = [];
+    const trackedTextRefs = new Set();
+    const trackedAttrRefs = new Set();
+
+    const LANG_MODE_STORAGE_KEY = 'nawe_lang_mode_v1';
+    const WIDGET_POS_STORAGE_KEY = 'nawe_widget_pos_v1';
+
+    function readSavedMode() {
+      if (opts.initialMode === 'zh' || opts.initialMode === 'bilingual' || opts.initialMode === 'en') {
+        return opts.initialMode;
+      }
+      try {
+        const saved = win.localStorage && win.localStorage.getItem(LANG_MODE_STORAGE_KEY);
+        if (saved === 'zh' || saved === 'bilingual' || saved === 'en') return saved;
+      } catch (_) {}
+      return 'zh';
+    }
+
+    let langMode = readSavedMode();
+    let enabled = langMode !== 'en';
+    let errorCount = 0;
+    let tripped = false;
+    let flushScheduled = false;
+    const pendingNodes = new Set();
+    let widgetSyncUi = null;
+
+    const hasWeakRef = typeof WeakRef === 'function';
+    const wrapRef = (obj) => (hasWeakRef ? new WeakRef(obj) : { deref: () => obj });
+
+    function safeClosest(el, selector) {
+      if (!selector || !el || el.nodeType !== 1 || typeof el.closest !== 'function') return null;
+      try {
+        return el.closest(selector);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    /**
+     * 识别流式输出的逐词 <span> 片段，防止 AI 英文回复中的单个词被误翻。
+     */
+    function isStreamingWordSpan(el) {
+      try {
+        if (!el || el.nodeType !== 1 || String(el.tagName || '').toUpperCase() !== 'SPAN') {
+          return false;
+        }
+        if (
+          typeof el.getAttribute === 'function' &&
+          (el.getAttribute('role') ||
+            el.getAttribute('data-testid') ||
+            el.getAttribute('title') ||
+            el.getAttribute('aria-label'))
+        ) {
+          return false;
+        }
+        const host = el.parentElement;
+        if (!host || host.nodeType !== 1) return false;
+        const hostTag = String(host.tagName || '').toUpperCase();
+        if (hostTag === 'BUTTON' || hostTag === 'A') return false;
+
+        const siblings = host.childNodes || [];
+        let plainSpanCount = 0;
+        let singleWordSpanCount = 0;
+        for (let i = 0; i < siblings.length; i++) {
+          const sib = siblings[i];
+          if (!sib || sib.nodeType !== 1 || String(sib.tagName || '').toUpperCase() !== 'SPAN') continue;
+          plainSpanCount++;
+          const t = String(sib.textContent || '').trim();
+          if (t && !/\s/.test(t) && t.length <= 24) {
+            singleWordSpanCount++;
+          }
+          if (plainSpanCount >= 4 && singleWordSpanCount >= 4) {
+            return true;
+          }
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function classifyElement(el) {
+      if (!el || el.nodeType !== 1) return 'hard-immune';
+      const tag = String(el.tagName || '').toUpperCase();
+      if (translator.skipTags.has(tag)) return 'hard-immune';
+      if (el.isContentEditable) return 'hard-immune';
+      if (hardSel && safeClosest(el, hardSel)) return 'hard-immune';
+      if (isStreamingWordSpan(el)) return 'prose-immune';
+
+      if (proseSel) {
+        const proseAncestor = safeClosest(el, proseSel);
+        if (proseAncestor) {
+          const ctrl = controlSel ? safeClosest(el, controlSel) : null;
+          if (ctrl && proseAncestor.contains(ctrl)) {
+            return 'control';
+          }
+          return 'prose-immune';
+        }
+      }
+      return 'normal';
+    }
+
+    function isInHighRiskContext(el) {
+      if (!el || el.nodeType !== 1) return false;
+      if (highRiskSel) {
+        const container = safeClosest(el, highRiskSel);
+        if (container) {
+          const fullText = container.textContent || '';
+          if (fullText.length <= 1600 && translator.containsHighRiskKeyword(fullText)) {
+            return true;
+          }
+        }
+      }
+      let cur = el.parentElement;
+      for (let depth = 0; cur && depth < 4; depth++) {
+        const txt = cur.textContent || '';
+        if (txt.length <= 600 && translator.containsHighRiskKeyword(txt)) {
+          return true;
+        }
+        cur = cur.parentElement;
+      }
+      return false;
+    }
+
+    function isPrecededBySlash(textNode) {
+      try {
+        const prev = textNode && textNode.previousSibling;
+        if (prev && typeof prev.textContent === 'string' && prev.textContent.trim().endsWith('/')) {
+          return true;
+        }
+        const parent = textNode && textNode.parentElement;
+        const parentPrev = parent && parent.previousSibling;
+        if (parentPrev && typeof parentPrev.textContent === 'string' && parentPrev.textContent.trim().endsWith('/')) {
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function processTextNode(textNode) {
+      if (!enabled || tripped || !textNode || textNode.nodeType !== 3) return;
+      const parent = textNode.parentElement;
+      if (!parent) return;
+
+      const parentTag = String(parent.tagName || '').toUpperCase();
+      if (translator.attributeOnlyTags.has(parentTag)) return;
+
+      const cls = classifyElement(parent);
+      if (cls === 'hard-immune' || cls === 'prose-immune') return;
+
+      const currentVal = textNode.nodeValue;
+      const existing = textRecords.get(textNode);
+      if (existing && currentVal === existing.trans) return;
+
+      const res = translator.translateText(currentVal, {
+        isHighRisk: isInHighRiskContext(parent),
+        controlOnly: cls === 'control',
+        precededBySlash: isPrecededBySlash(textNode),
+        bilingualAll: langMode === 'bilingual',
+      });
+
+      if (res.changed) {
+        textRecords.set(textNode, { orig: currentVal, trans: res.translated });
+        trackedTextRefs.add(wrapRef(textNode));
+        textNode.nodeValue = res.translated;
+      }
+    }
+
+    function processAttributes(el) {
+      if (!enabled || tripped || !el || el.nodeType !== 1) return;
+      const tag = String(el.tagName || '').toUpperCase();
+      if (translator.skipTags.has(tag)) return;
+      if (hardSel && safeClosest(el, hardSel)) return;
+
+      const cls = classifyElement(el);
+      if (cls === 'hard-immune' || cls === 'prose-immune') return;
+
+      const isHighRisk = isInHighRiskContext(el);
+      let map = attrRecords.get(el);
+
+      for (const attr of translator.allowedAttributes) {
+        if (typeof el.getAttribute !== 'function') continue;
+        const curVal = el.getAttribute(attr);
+        if (!curVal) continue;
+
+        const rec = map && map.get(attr);
+        if (rec && curVal === rec.trans) continue;
+
+        const res = translator.translateText(curVal, {
+          isHighRisk,
+          controlOnly: false,
+          bilingualAll: langMode === 'bilingual',
+        });
+
+        if (res.changed) {
+          if (!map) {
+            map = new Map();
+            attrRecords.set(el, map);
+            trackedAttrRefs.add(wrapRef(el));
+          }
+          map.set(attr, { orig: curVal, trans: res.translated });
+          el.setAttribute(attr, res.translated);
+        }
+      }
+    }
+
+    function walkSubtree(root) {
+      if (!enabled || tripped || !root) return;
+
+      if (root.nodeType === 3) {
+        processTextNode(root);
+        return;
+      }
+
+      if (root.nodeType === 1) {
+        const cls = classifyElement(root);
+        if (cls === 'hard-immune') return;
+        processAttributes(root);
+
+        if (root.shadowRoot) {
+          observeRoot(root.shadowRoot);
+          walkSubtree(root.shadowRoot);
+        }
+
+        if (String(root.tagName || '').toUpperCase() === 'IFRAME') {
+          try {
+            if (root.contentDocument && root.contentDocument.body) {
+              observeRoot(root.contentDocument.body);
+              walkSubtree(root.contentDocument.body);
+            }
+          } catch (_) {}
+        }
+      }
+
+      const children = root.childNodes;
+      if (!children) return;
+      for (let i = 0; i < children.length; i++) {
+        walkSubtree(children[i]);
+      }
+    }
+
+    function handleError(err) {
+      errorCount += 1;
+      if (errorCount >= MAX_ERRORS && !tripped) {
+        tripped = true;
+        try {
+          restoreAllOriginal();
+          disconnectAll();
+        } catch (_) {}
+      }
+      return err;
+    }
+
+    function scheduleNode(node) {
+      if (!enabled || tripped || !node) return;
+      pendingNodes.add(node);
+      if (flushScheduled) return;
+      flushScheduled = true;
+
+      const scheduleFn =
+        typeof queueMicrotask === 'function'
+          ? queueMicrotask
+          : (cb) => Promise.resolve().then(cb);
+
+      scheduleFn(() => {
+        flushScheduled = false;
+        if (!enabled || tripped) {
+          pendingNodes.clear();
+          return;
+        }
+        const batch = Array.from(pendingNodes);
+        pendingNodes.clear();
+        for (const target of batch) {
+          try {
+            walkSubtree(target);
+          } catch (err) {
+            handleError(err);
+            if (tripped) break;
+          }
+        }
+      });
+    }
+
+    function observeRoot(root) {
+      if (!root || observedRoots.has(root) || typeof win.MutationObserver !== 'function') return;
+      observedRoots.add(root);
+
+      const observer = new win.MutationObserver((mutations) => {
+        if (!enabled || tripped) return;
+        try {
+          for (let i = 0; i < mutations.length; i++) {
+            const m = mutations[i];
+            if (m.type === 'characterData' || m.type === 'attributes') {
+              scheduleNode(m.target);
+            } else if (m.type === 'childList' && m.addedNodes) {
+              for (let j = 0; j < m.addedNodes.length; j++) {
+                scheduleNode(m.addedNodes[j]);
+              }
+            }
+          }
+        } catch (err) {
+          handleError(err);
+        }
+      });
+
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: translator.allowedAttributes,
+      });
+      activeObservers.push(observer);
+    }
+
+    function disconnectAll() {
+      while (activeObservers.length > 0) {
+        const obs = activeObservers.pop();
+        try {
+          obs.disconnect();
+        } catch (_) {}
+      }
+    }
+
+    function restoreAllOriginal() {
+      for (const ref of Array.from(trackedTextRefs)) {
+        const node = ref.deref();
+        if (!node) {
+          trackedTextRefs.delete(ref);
+          continue;
+        }
+        const rec = textRecords.get(node);
+        if (rec && node.nodeValue === rec.trans) {
+          node.nodeValue = rec.orig;
+        }
+      }
+      for (const ref of Array.from(trackedAttrRefs)) {
+        const el = ref.deref();
+        if (!el) {
+          trackedAttrRefs.delete(ref);
+          continue;
+        }
+        const map = attrRecords.get(el);
+        if (!map) continue;
+        for (const [attr, rec] of map.entries()) {
+          if (el.getAttribute(attr) === rec.trans) {
+            el.setAttribute(attr, rec.orig);
+          }
+        }
+      }
+    }
+
+    function showToast(msg) {
+      try {
+        if (!doc.body) return;
+        const id = 'nawe-status-toast';
+        let el = doc.getElementById(id);
+        if (!el) {
+          el = doc.createElement('div');
+          el.id = id;
+          el.setAttribute('data-nawe-skip', 'true');
+          Object.assign(el.style, {
+            position: 'fixed',
+            right: '14px',
+            bottom: '54px',
+            zIndex: '2147483647',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            background: 'rgba(17, 24, 39, 0.94)',
+            color: '#f9fafb',
+            fontSize: '12px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+            pointerEvents: 'none',
+            transition: 'opacity 0.2s ease',
+          });
+          doc.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.style.opacity = '1';
+        clearTimeout(el.__naweTimer);
+        el.__naweTimer = setTimeout(() => {
+          el.style.opacity = '0';
+        }, 2200);
+        if (el.__naweTimer && typeof el.__naweTimer.unref === 'function') {
+          el.__naweTimer.unref();
+        }
+      } catch (_) {}
+    }
+
+    function setMode(nextMode, { silent = false } = {}) {
+      if (tripped) return langMode;
+      if (nextMode !== 'zh' && nextMode !== 'bilingual' && nextMode !== 'en') return langMode;
+
+      langMode = nextMode;
+      enabled = nextMode !== 'en';
+
+      try {
+        if (win.localStorage && typeof win.localStorage.setItem === 'function') {
+          win.localStorage.setItem(LANG_MODE_STORAGE_KEY, nextMode);
+        }
+      } catch (_) {}
+
+      restoreAllOriginal();
+      if (enabled && doc.body) {
+        walkSubtree(doc.body);
+      }
+      if (typeof widgetSyncUi === 'function') widgetSyncUi();
+
+      if (!silent) {
+        const modeLabels = {
+          zh: '已切换：标准中文（高风险授权保留双语）',
+          bilingual: '已切换：全界面中英对照模式',
+          en: '已切换：官方英文原版',
+        };
+        showToast(modeLabels[nextMode]);
+      }
+      return langMode;
+    }
+
+    function toggleEnabled() {
+      return setMode(enabled ? 'en' : 'zh') !== 'en';
+    }
+
+    /**
+     * 在全界面右下角挂载独立 Shadow DOM 悬浮语言切换按钮（可拖动、零 CSS 冲突、绝不干扰 React）。
+     */
+    function mountFloatingLanguageWidget() {
+      try {
+        if (win.top && win.top !== win) return null;
+        const mountRoot = doc.documentElement || doc.body;
+        if (!mountRoot || typeof doc.createElement !== 'function') return null;
+
+        const HOST_ID = 'nawe-floating-root';
+        if (typeof doc.getElementById === 'function' && doc.getElementById(HOST_ID)) return null;
+
+        const host = doc.createElement('div');
+        host.id = HOST_ID;
+        host.setAttribute('data-nawe-skip', 'true');
+        Object.assign(host.style, {
+          position: 'fixed',
+          right: '14px',
+          bottom: '14px',
+          zIndex: '2147483646',
+          margin: '0',
+          padding: '0',
+          lineHeight: '1',
+        });
+
+        try {
+          const rawPos = win.localStorage && win.localStorage.getItem(WIDGET_POS_STORAGE_KEY);
+          if (rawPos) {
+            const pos = JSON.parse(rawPos);
+            if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+              host.style.right = 'auto';
+              host.style.bottom = 'auto';
+              host.style.left = `${Math.max(8, Math.min(pos.left, (win.innerWidth || 1200) - 70))}px`;
+              host.style.top = `${Math.max(8, Math.min(pos.top, (win.innerHeight || 800) - 36))}px`;
+            }
+          }
+        } catch (_) {}
+
+        const shadow = typeof host.attachShadow === 'function' ? host.attachShadow({ mode: 'open' }) : host;
+
+        const styleEl = doc.createElement('style');
+        styleEl.textContent = `
+          :host { all: initial; font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+          .nawe-wrap { position: relative; user-select: none; }
+          .nawe-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 30px; padding: 0 11px; border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(24, 24, 27, 0.84); color: #f4f4f5;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            opacity: 0.86; transition: opacity 0.15s ease, border-color 0.15s ease;
+          }
+          .nawe-pill:hover { opacity: 1; border-color: rgba(96, 165, 250, 0.75); }
+          .nawe-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+          .nawe-dot.en { background: #94a3b8; }
+          .nawe-dot.bilingual { background: #38bdf8; }
+          .nawe-panel {
+            position: absolute; right: 0; bottom: 38px; width: 236px;
+            background: rgba(24, 24, 27, 0.96); color: #f4f4f5;
+            border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            padding: 12px; display: none; flex-direction: column; gap: 9px;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+          }
+          .nawe-panel.open { display: flex; }
+          .nawe-panel.drop-down { bottom: auto; top: 38px; }
+          .nawe-panel.align-left { right: auto; left: 0; }
+          .nawe-head {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 12px; font-weight: 600; color: #e4e4e7;
+          }
+          .nawe-tag {
+            font-size: 10px; padding: 2px 6px; border-radius: 999px;
+            background: rgba(56, 189, 248, 0.16); color: #7dd3fc; font-weight: 500;
+          }
+          .nawe-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+          .nawe-seg button {
+            height: 28px; border-radius: 7px; border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(39, 39, 42, 0.9); color: #d4d4d8;
+            font-size: 11px; font-weight: 500; cursor: pointer;
+            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+          }
+          .nawe-seg button:hover { background: rgba(63, 63, 70, 0.95); color: #ffffff; }
+          .nawe-seg button.active {
+            background: #2563eb; border-color: #60a5fa; color: #ffffff; font-weight: 600;
+          }
+          .nawe-desc { font-size: 11px; color: #a1a1aa; line-height: 1.45; }
+          .nawe-foot {
+            font-size: 10px; color: #71717a; line-height: 1.4;
+            border-top: 1px solid rgba(148, 163, 184, 0.15); padding-top: 7px;
+          }
+        `;
+
+        const wrap = doc.createElement('div');
+        wrap.className = 'nawe-wrap';
+
+        const panel = doc.createElement('div');
+        panel.className = 'nawe-panel';
+
+        const head = doc.createElement('div');
+        head.className = 'nawe-head';
+        const headTitle = doc.createElement('span');
+        headTitle.textContent = '界面语言切换';
+        const headTag = doc.createElement('span');
+        headTag.className = 'nawe-tag';
+        headTag.textContent = '一点英语都不会';
+        head.appendChild(headTitle);
+        head.appendChild(headTag);
+
+        const seg = doc.createElement('div');
+        seg.className = 'nawe-seg';
+        const modeButtons = {};
+        const modeDefs = [
+          { id: 'zh', label: '标准中文', desc: '日常界面简体中文，高风险授权与 /指令 保留英文。' },
+          { id: 'bilingual', label: '中英对照', desc: '全界面保留中英双语对照，方便核对原始术语。' },
+          { id: 'en', label: '英文原版', desc: '免重启即时恢复官方原始英文界面。' },
+        ];
+        const modeDescMap = {};
+        for (const m of modeDefs) {
+          modeDescMap[m.id] = m.desc;
+          const btn = doc.createElement('button');
+          btn.type = 'button';
+          btn.textContent = m.label;
+          btn.addEventListener('click', () => {
+            setMode(m.id);
+          });
+          modeButtons[m.id] = btn;
+          seg.appendChild(btn);
+        }
+
+        const modeDesc = doc.createElement('div');
+        modeDesc.className = 'nawe-desc';
+
+        const foot = doc.createElement('div');
+        foot.className = 'nawe-foot';
+        foot.textContent = '可按住按钮拖动位置 · 更改立即生效';
+
+        panel.appendChild(head);
+        panel.appendChild(seg);
+        panel.appendChild(modeDesc);
+        panel.appendChild(foot);
+
+        const pill = doc.createElement('button');
+        pill.type = 'button';
+        pill.className = 'nawe-pill';
+        pill.setAttribute('aria-label', '切换界面语言');
+        pill.setAttribute('aria-expanded', 'false');
+        const dot = doc.createElement('span');
+        dot.className = 'nawe-dot';
+        const pillText = doc.createElement('span');
+        pill.appendChild(dot);
+        pill.appendChild(pillText);
+
+        wrap.appendChild(panel);
+        wrap.appendChild(pill);
+        shadow.appendChild(styleEl);
+        shadow.appendChild(wrap);
+        mountRoot.appendChild(host);
+
+        let panelOpen = false;
+        let dragging = false;
+        let dragged = false;
+        let startX = 0;
+        let startY = 0;
+        let origLeft = 0;
+        let origTop = 0;
+
+        function syncUi() {
+          pill.setAttribute('aria-expanded', panelOpen ? 'true' : 'false');
+          panel.classList.toggle('open', panelOpen);
+
+          if (panelOpen && typeof host.getBoundingClientRect === 'function') {
+            const rect = host.getBoundingClientRect();
+            panel.classList.toggle('drop-down', rect.top < 170);
+            panel.classList.toggle('align-left', rect.left < 250);
+          }
+
+          const shortNames = { zh: '中文', bilingual: '中/EN', en: 'EN' };
+          pillText.textContent = shortNames[langMode] || '中文';
+          modeDesc.textContent = modeDescMap[langMode] || '';
+
+          dot.className = 'nawe-dot';
+          if (langMode === 'en') dot.classList.add('en');
+          else if (langMode === 'bilingual') dot.classList.add('bilingual');
+
+          for (const [id, b] of Object.entries(modeButtons)) {
+            b.classList.toggle('active', langMode === id);
+          }
+        }
+
+        pill.addEventListener('pointerdown', (e) => {
+          if (!e || e.button !== 0) return;
+          dragging = true;
+          dragged = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          if (typeof host.getBoundingClientRect === 'function') {
+            const rect = host.getBoundingClientRect();
+            origLeft = rect.left;
+            origTop = rect.top;
+          }
+          if (typeof pill.setPointerCapture === 'function') {
+            try { pill.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+        });
+
+        pill.addEventListener('pointermove', (e) => {
+          if (!dragging || !e) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (!dragged && Math.abs(dx) + Math.abs(dy) < 5) return;
+          dragged = true;
+          const maxLeft = Math.max(8, (win.innerWidth || 1200) - 72);
+          const maxTop = Math.max(8, (win.innerHeight || 800) - 38);
+          const nextLeft = Math.max(8, Math.min(origLeft + dx, maxLeft));
+          const nextTop = Math.max(8, Math.min(origTop + dy, maxTop));
+          host.style.right = 'auto';
+          host.style.bottom = 'auto';
+          host.style.left = `${nextLeft}px`;
+          host.style.top = `${nextTop}px`;
+        });
+
+        pill.addEventListener('pointerup', () => {
+          if (!dragging) return;
+          dragging = false;
+          if (dragged) {
+            try {
+              const rect = host.getBoundingClientRect();
+              if (win.localStorage && typeof win.localStorage.setItem === 'function') {
+                win.localStorage.setItem(
+                  WIDGET_POS_STORAGE_KEY,
+                  JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) })
+                );
+              }
+            } catch (_) {}
+            return;
+          }
+          panelOpen = !panelOpen;
+          syncUi();
+        });
+
+        if (typeof doc.addEventListener === 'function') {
+          doc.addEventListener('pointerdown', (e) => {
+            if (!panelOpen) return;
+            const pathList = typeof e.composedPath === 'function' ? e.composedPath() : [];
+            if (pathList.includes(host)) return;
+            panelOpen = false;
+            syncUi();
+          });
+        }
+
+        widgetSyncUi = syncUi;
+        syncUi();
+        return host;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function start() {
+      try {
+        const target = doc.body || doc.documentElement;
+        if (!target) return;
+        observeRoot(target);
+        if (enabled) {
+          walkSubtree(target);
+        }
+        mountFloatingLanguageWidget();
+      } catch (err) {
+        handleError(err);
+      }
+    }
+
+    if (doc.readyState === 'loading' && typeof doc.addEventListener === 'function') {
+      doc.addEventListener('DOMContentLoaded', start, { once: true });
+    } else {
+      start();
+    }
+
+    const controller = {
+      isEnabled: () => enabled,
+      getMode: () => langMode,
+      setMode,
+      isTripped: () => tripped,
+      toggle: toggleEnabled,
+      restoreAllOriginal,
+      rescan: () => {
+        if (enabled && !tripped && doc.body) walkSubtree(doc.body);
+      },
+      disconnect: disconnectAll,
+      _forceErrorForTest: handleError,
+    };
+
+    try {
+      Object.defineProperty(win, ENGINE_FLAG, { value: controller, enumerable: false, configurable: true });
+    } catch (_) {}
+
+    return { installed: true, controller };
+  }
+
+  const api = {
+    isAllowedOrigin,
+    createDomTranslator,
+    installDomEngine,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  } else if (globalScope) {
+    globalScope.__naweDomEngineFactory = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : {});

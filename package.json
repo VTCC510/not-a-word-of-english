@@ -1,0 +1,38 @@
+{
+  "name": "not-a-word-of-english",
+  "version": "1.0.0",
+  "description": "安全、高覆盖率、零外部依赖的 Google Antigravity 客户端中文本地化工具（保留指令标识符 + 高风险命令授权强制双语对照）",
+  "main": "cli.js",
+  "bin": {
+    "nawe": "./cli.js"
+  },
+  "scripts": {
+    "status": "node cli.js status",
+    "check": "node cli.js check",
+    "install-zh": "node cli.js install",
+    "restore": "node cli.js restore",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "antigravity",
+    "chinese",
+    "localization",
+    "i18n",
+    "zh-cn",
+    "electron"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VTCC510/not-a-word-of-english.git"
+  },
+  "homepage": "https://github.com/VTCC510/not-a-word-of-english#readme",
+  "bugs": {
+    "url": "https://github.com/VTCC510/not-a-word-of-english/issues"
+  },
+  "author": "VTCC510",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {}
+}

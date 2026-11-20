@@ -1,0 +1,202 @@
+{
+  "_meta": {
+    "description": "Electron 主进程原生菜单、右键菜单、系统托盘与系统对话框词库",
+    "version": "1.1.0"
+  },
+  "menuLabels": {
+    "File": "文件",
+    "Edit": "编辑",
+    "View": "视图",
+    "Window": "窗口",
+    "Help": "帮助",
+    "Services": "服务",
+    "Speech": "语音",
+    "Selection": "选择",
+    "Go": "转到",
+    "Run": "运行",
+    "Terminal": "终端",
+
+    "New Window": "新建窗口",
+    "New Tab": "新建标签页",
+    "Open": "打开",
+    "Open...": "打开...",
+    "Open Folder": "打开文件夹",
+    "Open Folder...": "打开文件夹...",
+    "Open Workspace": "打开工作区",
+    "Open Recent": "打开最近使用",
+    "Clear Recently Opened": "清空最近打开记录",
+    "Save": "保存",
+    "Save As...": "另存为...",
+    "Close": "关闭",
+    "Close Tab": "关闭标签页",
+    "Close Window": "关闭窗口",
+    "Quit": "退出",
+    "Exit": "退出",
+    "Settings": "设置",
+    "Preferences": "偏好设置",
+    "Preferences...": "偏好设置...",
+
+    "Undo": "撤销",
+    "Redo": "重做",
+    "Cut": "剪切",
+    "Copy": "复制",
+    "Paste": "粘贴",
+    "Paste and Match Style": "粘贴并匹配样式",
+    "Paste And Match Style": "粘贴并匹配样式",
+    "Delete": "删除",
+    "Select All": "全选",
+    "Find": "查找",
+    "Find Next": "查找下一个",
+    "Find Previous": "查找上一个",
+    "Replace": "替换",
+    "Start Speaking": "开始朗读",
+    "Stop Speaking": "停止朗读",
+    "Substitutions": "替换",
+    "Transformations": "转换",
+    "Make Upper Case": "转为大写",
+    "Make Lower Case": "转为小写",
+    "Capitalize": "首字母大写",
+
+    "Reload": "重新加载",
+    "Force Reload": "强制重新加载",
+    "Toggle Developer Tools": "切换开发者工具",
+    "Actual Size": "实际大小",
+    "Reset Zoom": "重置缩放",
+    "Zoom In": "放大",
+    "Zoom Out": "缩小",
+    "Toggle Full Screen": "切换全屏",
+    "Enter Full Screen": "进入全屏",
+    "Exit Full Screen": "退出全屏",
+
+    "Minimize": "最小化",
+    "Zoom": "缩放",
+    "Front": "前置全部窗口",
+    "Bring All to Front": "前置全部窗口",
+    "Hide": "隐藏",
+    "Hide Others": "隐藏其他",
+    "Show All": "显示全部",
+    "About": "关于",
+    "Always on Top": "窗口置顶",
+    "Next Tab": "下一个标签页",
+    "Previous Tab": "上一个标签页",
+
+    "Docs": "文档",
+    "Documentation": "文档",
+    "Learn More": "了解更多",
+    "Release Notes": "更新日志",
+    "Report Issue": "反馈问题",
+    "Check for Updates": "检查更新",
+    "Check for Updates...": "检查更新...",
+    "Checking for Updates...": "正在检查更新...",
+    "Downloading Update...": "正在下载更新...",
+    "Restart to Update": "重启以完成更新",
+
+    "Connect to WSL": "连接到 WSL",
+    "Connect to Remote": "连接到远程主机",
+    "Reopen Locally": "在本地重新打开",
+    "No agents running": "暂无智能体运行",
+    "Open Antigravity": "打开 Antigravity",
+
+    "Back": "后退",
+    "Forward": "前进",
+    "Print...": "打印...",
+    "Inspect Element": "检查元素",
+    "Inspect": "检查元素",
+    "Copy Link": "复制链接",
+    "Copy Link Address": "复制链接地址",
+    "Copy Image": "复制图片",
+    "Copy Image Address": "复制图片地址",
+    "Save Image As...": "图片另存为...",
+    "Save As": "另存为",
+    "Open Link in New Tab": "在新标签页中打开链接",
+    "Open Link in Browser": "在浏览器中打开链接",
+    "Open Image in New Tab": "在新标签页中打开图片",
+    "Emoji & Symbols": "表情与符号",
+    "Add to Dictionary": "添加到词典",
+    "Look Up": "查询",
+    "No Guesses Found": "未找到拼写建议"
+  },
+  "menuPatterns": [
+    {
+      "pattern": "^(\\d+)\\s+agents?\\s+running$",
+      "flags": "i",
+      "replacement": "$1 个智能体运行中"
+    },
+    {
+      "pattern": "^Open\\s+(.+)$",
+      "flags": "",
+      "replacement": "打开 $1"
+    },
+    {
+      "pattern": "^About\\s+(.+)$",
+      "flags": "",
+      "replacement": "关于 $1"
+    },
+    {
+      "pattern": "^Hide\\s+(.+)$",
+      "flags": "",
+      "replacement": "隐藏 $1"
+    },
+    {
+      "pattern": "^Quit\\s+(.+)$",
+      "flags": "",
+      "replacement": "退出 $1"
+    },
+    {
+      "pattern": "^Search\\s+with\\s+(.+)$",
+      "flags": "i",
+      "replacement": "使用 $1 搜索"
+    },
+    {
+      "pattern": "^Look\\s+Up\\s+\"([^\"]+)\"$",
+      "flags": "",
+      "replacement": "查询 \"$1\""
+    }
+  ],
+  "dialogs": {
+    "exact": {
+      "Check for Updates": "检查更新",
+      "No updates available": "当前已是最新版本，暂无可用更新。",
+      "Update Available": "发现新版本",
+      "Update Ready": "更新已就绪",
+      "OK": "确定",
+      "Select Folder": "选择文件夹",
+      "Select Workspace Folder": "选择工作区文件夹",
+      "Open Folder": "打开文件夹",
+      "Open File": "打开文件",
+      "Save File": "保存文件",
+      "Choose": "选择",
+      "Open": "打开",
+      "Save": "保存",
+      "WSL distro not found": "未找到指定的 WSL 发行版",
+      "Antigravity opened on Windows instead.": "Antigravity 已改为在 Windows 本地模式打开。"
+    },
+    "bilingualConfirm": {
+      "Confirm Quit": "确认退出 (Confirm Quit)",
+      "Are you sure you want to quit?": "确定要退出 Antigravity 吗？\n(Are you sure you want to quit?)",
+      "There may be agents or background tasks running.": "当前可能仍有智能体或后台任务正在运行。\n(There may be agents or background tasks running.)",
+      "Restart Now": "立即重启 (Restart Now)",
+      "Later": "稍后 (Later)",
+      "Cancel": "取消 (Cancel)",
+      "Quit": "退出 (Quit)",
+      "Allow": "允许 (Allow)",
+      "Deny": "拒绝 (Deny)",
+      "Delete": "删除 (Delete)",
+      "Continue": "继续 (Continue)",
+      "Confirm": "确认 (Confirm)",
+      "Overwrite": "覆盖 (Overwrite)"
+    },
+    "patterns": [
+      {
+        "pattern": "^WSL distro \"([^\"]+)\" was not found\\.$",
+        "flags": "",
+        "replacement": "未找到 WSL 发行版 \"$1\"。"
+      },
+      {
+        "pattern": "^Setting up WSL:\\s*(.+)$",
+        "flags": "",
+        "replacement": "正在配置 WSL 环境：$1"
+      }
+    ]
+  }
+}
