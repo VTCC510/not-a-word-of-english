@@ -1,6 +1,7 @@
-# not-a-word-of-english（一点英语都不会）
+# not-a-word-of-english（一点英语都不会）  <br/>Antigravity反重力汉化插件
 
-> 安全、轻量、零外部依赖的 **Google Antigravity 桌面客户端** 中文本地化工具。
+
+> 安全、轻量、零外部依赖的 **Google Antigravity 桌面客户端** 汉化工具。
 >
 > 支持 **标准中文 / 中英对照 / 英文原版** 右下角一键免重启切换，强制保留斜杠指令原英文，并在终端命令授权等高风险操作处强制展示中英双语对照。
 
