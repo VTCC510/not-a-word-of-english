@@ -70,6 +70,8 @@
     "button",
     "[role='button']",
     "[role='menuitem']",
+    "[role='menu']",
+    "[role='toolbar']",
     "[role='tab']",
     "[role='tooltip']",
     "[data-testid*='approval']",

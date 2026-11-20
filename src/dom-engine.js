@@ -36,6 +36,7 @@
   const DOTTED_CODE_RE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:\(\))?$/;
   const KEBAB_SLUG_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
   const KEYCAP_OR_UNIT_RE = /^(?:[A-Z]|Ctrl|Shift|Alt|Cmd|Option|Meta|Esc|Tab|(?:Ctrl|Shift|Alt|Cmd)\+[^\s]+|\d+(?:px|rem|em|%))$/;
+  const LABEL_WITH_SHORTCUT_RE = /^([A-Za-z][A-Za-z0-9 /&'’-]{0,48}?)(\s+(?:\(?(?:(?:Ctrl|Cmd|Shift|Alt|Option|Meta)\+)+[A-Za-z0-9]+\)?|[⌘⌃⌥⇧]+[A-Za-z0-9]+))$/;
   const POWERSHELL_CMDLET_RE = /^(?:Get|Set|New|Remove|Add|Clear|Copy|Move|Invoke|Start|Stop|Restart|Test|Enable|Disable|Install|Uninstall|Update|Import|Export)-[A-Z][A-Za-z0-9]+(?:\s|$)/;
 
   function isAllowedOrigin(loc) {
@@ -315,6 +316,26 @@
           changed: out !== rawText,
           reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-static' : 'static-exact',
         };
+      }
+
+      // 5.5 带快捷键后缀的按钮 / 浮层菜单项 / 提示（如 "Quote Ctrl+L"、"Side Question (Ctrl+E)"）
+      if (!CJK_RE.test(trimmed) && trimmed.length <= 80) {
+        const scMatch = trimmed.match(LABEL_WITH_SHORTCUT_RE);
+        if (scMatch) {
+          const baseLabel = scMatch[1].trim();
+          const shortcutSuffix = scMatch[2];
+          const baseZh = staticExact.get(baseLabel) || staticLower.get(baseLabel.toLowerCase());
+          if (baseZh) {
+            const wantBilingual = isHighRisk || bilingualAll;
+            const renderedLabel = wantBilingual ? ensureBilingual(baseZh, baseLabel) : baseZh;
+            const out = preserveWhitespace(rawText, `${renderedLabel}${shortcutSuffix}`);
+            return {
+              translated: out,
+              changed: out !== rawText,
+              reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-shortcut' : 'static-with-shortcut',
+            };
+          }
+        }
       }
 
       if (controlOnly) {

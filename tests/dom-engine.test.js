@@ -635,3 +635,57 @@ test('Bottom-right floating language switcher mounts in Shadow DOM with zero hot
   assert.equal(controller.isTripped(), true);
   assert.equal(shadowSpan.textContent, 'Preferences');
 });
+
+test('Text selection popovers, shortcut-suffixed labels, and copy/clipboard popups translate cleanly inside prose and file viewer', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  const msg = new MockElement('div', { 'data-message-role': 'assistant' }, ['markdown-body']);
+  const proseText = new MockElement('p');
+  proseText.appendChild(new MockText('Quote'));
+
+  // 划词浮动工具栏（模拟两种 DOM 形态：拆分子节点 vs 单文本节点带快捷键后缀）
+  const popover = new MockElement('div', { role: 'toolbar' });
+  const quoteBtn = new MockElement('button', { title: 'Quote (Ctrl+L)' });
+  const quoteLabel = new MockElement('span');
+  quoteLabel.appendChild(new MockText('Quote'));
+  const quoteKbd = new MockElement('kbd');
+  quoteKbd.appendChild(new MockText('Ctrl+L'));
+  quoteBtn.appendChild(quoteLabel);
+  quoteBtn.appendChild(quoteKbd);
+
+  const sideQBtn = new MockElement('button');
+  sideQBtn.appendChild(new MockText('Side Question Ctrl+E'));
+
+  const commentItem = new MockElement('div');
+  commentItem.appendChild(new MockText('Comment Ctrl+M'));
+
+  const toast = new MockElement('div');
+  toast.appendChild(new MockText('Copied to clipboard'));
+
+  popover.appendChild(quoteBtn);
+  popover.appendChild(sideQBtn);
+  popover.appendChild(commentItem);
+  msg.appendChild(proseText);
+  msg.appendChild(popover);
+  body.appendChild(msg);
+  body.appendChild(toast);
+
+  installDomEngine(dom.win, bundle);
+
+  // 对话正文中的英文词 "Quote" 仍受物理免疫保护
+  assert.equal(proseText.textContent, 'Quote');
+  // 划词浮窗按钮、快捷键后缀与提示气泡全部精准汉化，快捷键本身原样保留
+  assert.equal(quoteLabel.textContent, '引用');
+  assert.equal(quoteKbd.textContent, 'Ctrl+L');
+  assert.equal(quoteBtn.getAttribute('title'), '引用 (Ctrl+L)');
+  assert.equal(sideQBtn.textContent, '旁白追问 Ctrl+E');
+  assert.equal(commentItem.textContent, '批注 Ctrl+M');
+  assert.equal(toast.textContent, '已复制到剪贴板');
+
+  // 动态行数与 macOS 快捷键后缀测试
+  const t = createDomTranslator(bundle);
+  assert.equal(t.translateText('Add to Chat ⌘L').translated, '添加到对话 ⌘L');
+  assert.equal(t.translateText('Copied 5 lines').translated, '已复制 5 行');
+  assert.equal(t.translateText('Quote lines 10-20').translated, '引用第 10-20 行');
+});

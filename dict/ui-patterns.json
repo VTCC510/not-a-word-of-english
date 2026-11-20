@@ -543,6 +543,36 @@
       "pattern": "^How\\s+to\\s+render\\s+rich\\s+interactive\\s+HTML\\s+widgets[\\s\\S]*$",
       "flags": "",
       "replacement": "在对话内或独立产物中渲染交互式 HTML 组件、图表、数据可视化与动态教学演示。"
+    },
+    {
+      "keywords": ["line", "lines", "selected"],
+      "pattern": "^(\\d+)\\s+lines?\\s+selected$",
+      "flags": "i",
+      "replacement": "已选中 $1 行"
+    },
+    {
+      "keywords": ["character", "characters", "selected"],
+      "pattern": "^(\\d+)\\s+characters?\\s+selected$",
+      "flags": "i",
+      "replacement": "已选中 $1 个字符"
+    },
+    {
+      "keywords": ["copied", "line", "lines"],
+      "pattern": "^Copied\\s+(\\d+)\\s+lines?$",
+      "flags": "i",
+      "replacement": "已复制 $1 行"
+    },
+    {
+      "keywords": ["quote", "line", "lines"],
+      "pattern": "^Quote\\s+lines?\\s+(\\d+(?:-\\d+)?)$",
+      "flags": "i",
+      "replacement": "引用第 $1 行"
+    },
+    {
+      "keywords": ["comment", "line", "lines"],
+      "pattern": "^Comment\\s+on\\s+lines?\\s+(\\d+(?:-\\d+)?)$",
+      "flags": "i",
+      "replacement": "对第 $1 行添加批注"
     }
   ]
 }

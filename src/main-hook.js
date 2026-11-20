@@ -67,6 +67,28 @@ const LEAF_ROLES = new Set([
   'showalltabs',
 ]);
 
+// 当原生菜单仅声明 role 而未显式传 label 时，补充标准英文标签用于汉化映射
+const ROLE_DEFAULT_LABELS = {
+  undo: 'Undo',
+  redo: 'Redo',
+  cut: 'Cut',
+  copy: 'Copy',
+  paste: 'Paste',
+  pasteandmatchstyle: 'Paste and Match Style',
+  delete: 'Delete',
+  selectall: 'Select All',
+  reload: 'Reload',
+  forcereload: 'Force Reload',
+  toggledevtools: 'Toggle Developer Tools',
+  resetzoom: 'Actual Size',
+  zoomin: 'Zoom In',
+  zoomout: 'Zoom Out',
+  togglefullscreen: 'Toggle Full Screen',
+  minimize: 'Minimize',
+  close: 'Close',
+  quit: 'Quit',
+};
+
 // 识别潜在高风险/确认型系统弹窗关键词（此类弹窗若未收录在词库中，坚决保持英文原样或双语对照）
 const HIGH_RISK_DIALOG_RE =
   /\b(quit|exit|delete|remove|erase|format|permission|sandbox|bypass|execute|shell|command|certificate|security|trust|admin|elevate|overwrite|reset)\b/i;
@@ -226,7 +248,11 @@ function menuToLocalizedTemplate(menuInstance, translator, { isRoot = false } = 
       continue;
     }
 
-    const origLabel = typeof item.label === 'string' ? item.label : '';
+    const roleLowerPre = typeof item.role === 'string' ? item.role.toLowerCase() : '';
+    const origLabel =
+      typeof item.label === 'string' && item.label
+        ? item.label
+        : ROLE_DEFAULT_LABELS[roleLowerPre] || '';
     const translatedLabel = translator.translateMenuLabel(origLabel);
     const entry = {
       label: translatedLabel,
@@ -333,6 +359,7 @@ function installMainHook(electron, dict) {
 
   const translator = createNativeTranslator(dict);
   const localizedMenus = new WeakSet();
+  const rawToLocalizedMenu = new WeakMap();
   let lastRawAppMenu = null;
 
   // 1. 代理 Menu.setApplicationMenu / Menu.getApplicationMenu / Menu.prototype.popup
@@ -381,11 +408,20 @@ function installMainHook(electron, dict) {
           const template = menuToLocalizedTemplate(this, translator, { isRoot: false });
           const localized = origBuildFromTemplate(template);
           localizedMenus.add(localized);
+          rawToLocalizedMenu.set(this, localized);
           return origPopup.call(localized, options);
         } catch (_) {
           return origPopup.call(this, options);
         }
       };
+
+      if (typeof Menu.prototype.closePopup === 'function') {
+        const origClosePopup = Menu.prototype.closePopup;
+        Menu.prototype.closePopup = function naweClosePopup(browserWindow) {
+          const target = rawToLocalizedMenu.get(this) || this;
+          return origClosePopup.call(target, browserWindow);
+        };
+      }
     }
   }
 

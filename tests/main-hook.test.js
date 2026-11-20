@@ -11,6 +11,7 @@ const { createNativeTranslator, installMainHook } = require('../src/main-hook');
 function createMockElectron() {
   let activeOsMenu = null;
   const popupCalls = [];
+  const closePopupCalls = [];
   const dialogCalls = [];
   const trayMenus = [];
 
@@ -46,6 +47,9 @@ function createMockElectron() {
     }
     popup(options) {
       popupCalls.push({ menu: this, options });
+    }
+    closePopup(browserWindow) {
+      closePopupCalls.push({ menu: this, browserWindow });
     }
     static buildFromTemplate(template) {
       return new MockMenu(template.map((t) => new MockMenuItem(t)));
@@ -86,6 +90,7 @@ function createMockElectron() {
     electron: { Menu: MockMenu, MenuItem: MockMenuItem, Tray: MockTray, dialog },
     getActiveOsMenu: () => activeOsMenu,
     popupCalls,
+    closePopupCalls,
     dialogCalls,
     trayMenus,
   };
@@ -230,8 +235,13 @@ test('Dynamic context menu popup translates cleanly without infinite recursion',
   installMainHook(env.electron, nativeDict);
 
   const ctx = Menu.buildFromTemplate([
-    { label: 'Copy', role: 'copy' },
-    { label: 'Paste', role: 'paste' },
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { role: 'selectAll' },
+    { label: 'Quote' },
+    { label: 'Side Question' },
+    { label: 'Connection info…' },
     { label: 'Inspect Element' },
   ]);
   ctx.popup({ x: 10, y: 20 });
@@ -239,8 +249,13 @@ test('Dynamic context menu popup translates cleanly without infinite recursion',
   assert.equal(env.popupCalls.length, 1);
   assert.deepEqual(
     env.popupCalls[0].menu.items.map((i) => i.label),
-    ['复制', '粘贴', '检查元素']
+    ['剪切', '复制', '粘贴', '全选', '引用', '旁白追问', '连接信息…', '检查元素']
   );
+
+  // closePopup 转发到实际弹出的汉化菜单实例
+  ctx.closePopup({ id: 'win-1' });
+  assert.equal(env.closePopupCalls.length, 1);
+  assert.equal(env.closePopupCalls[0].menu, env.popupCalls[0].menu);
 });
 
 test('Dialog hook translates info dialogs, enforces bilingual safety on Confirm Quit, and preserves button count & order', async () => {
