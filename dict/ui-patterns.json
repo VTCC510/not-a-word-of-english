@@ -501,6 +501,48 @@
       "pattern": "^(.+)\\s+5-[Hh]our\\s+Limit$",
       "flags": "",
       "replacement": "$1 5 小时限额"
+    },
+    {
+      "keywords": ["chrome", "extensions", "manifest"],
+      "pattern": "^Build\\s+and\\s+publish\\s+Chrome\\s+Extensions\\s+using\\s+Manifest\\s+V3[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Manifest V3 最佳实践开发、调试并发布 Chrome 浏览器扩展程序。"
+    },
+    {
+      "keywords": ["modern", "web", "development"],
+      "pattern": "^Search\\s+tool\\s+for\\s+modern\\s+web\\s+development\\s+best\\s+practices[\\s\\S]*$",
+      "flags": "",
+      "replacement": "现代前端与 Web 开发最佳实践检索工具（HTML/CSS、表单、弹窗、无障碍与性能优化）。"
+    },
+    {
+      "keywords": ["plugins", "namespaced"],
+      "pattern": "^How\\s+to\\s+manage\\s+and\\s+create\\s+plugins\\s+—\\s+namespaced\\s+bundles[\\s\\S]*$",
+      "flags": "",
+      "replacement": "管理与创建 Antigravity 插件：将技能、智能体、规则、MCP 与钩子打包为独立插件（支持 /plugin 指令）。"
+    },
+    {
+      "keywords": ["workflow", "script", "orchestrates"],
+      "pattern": "^How\\s+to\\s+write\\s+and\\s+run\\s+a\\s+dynamic\\s+workflow\\s+script[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 run_workflow 编写并运行多智能体编排 Python 工作流脚本（并行、流水线与结果聚合）。"
+    },
+    {
+      "keywords": ["comprehensive", "antigravity", "sitemap"],
+      "pattern": "^Provides\\s+a\\s+comprehensive\\s+guide,\\s+quick\\s+reference,\\s+and\\s+sitemap\\s+for\\s+Google\\s+Antigravity[\\s\\S]*$",
+      "flags": "",
+      "replacement": "Google Antigravity 完整使用指南与速查手册（涵盖 CLI、IDE、斜杠指令、快捷键与各类自定义配置）。"
+    },
+    {
+      "keywords": ["interactive", "scheduled", "automation"],
+      "pattern": "^Interactive\\s+guide\\s+to\\s+design\\s+and\\s+create\\s+a\\s+scheduled\\s+background\\s+automation[\\s\\S]*$",
+      "flags": "",
+      "replacement": "交互式定时后台自动化创建指南：设计与配置周期性自动执行任务（支持 /automation 指令）。"
+    },
+    {
+      "keywords": ["interactive", "widgets", "artifacts"],
+      "pattern": "^How\\s+to\\s+render\\s+rich\\s+interactive\\s+HTML\\s+widgets[\\s\\S]*$",
+      "flags": "",
+      "replacement": "在对话内或独立产物中渲染交互式 HTML 组件、图表、数据可视化与动态教学演示。"
     }
   ]
 }

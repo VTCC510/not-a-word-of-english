@@ -820,6 +820,25 @@
     "Command Palette": "命令面板",
     "Rename Project": "重命名项目",
     "Open Project Folder": "打开项目文件夹",
-    "View All Projects": "查看全部项目"
+    "View All Projects": "查看全部项目",
+
+    "Invoke a browser agent for web tasks.": "调用浏览器智能体处理网页浏览与交互任务。",
+    "Plan carefully before executing a task.": "在执行任务前进行周密的分步规划。",
+    "Interview me to align on a plan.": "通过交互式访谈与我对齐方案及设计细节。",
+    "Run an instruction on a recurring schedule or as a one-time timer.": "按周期性计划或一次性定时器自动执行指定指令。",
+    "Invoke a team of agents to autonomously tackle large projects.": "调用多智能体团队自主协作攻克大型项目。",
+    "Run a long-running task autonomously until the goal is achieved.": "持续自主执行长耗时任务，直到彻底达成目标。",
+    "Compact or summarize the conversation to free up context.": "压缩或总结当前对话以释放上下文窗口空间。",
+    "Persist corrections or complex setup for future tasks.": "将纠错经验或复杂配置沉淀下来，供后续任务复用。",
+    "Deep thinking, strategic planning, and rigorous verification for complex projects.": "针对复杂研发/调研项目启用深度思考、战略规划与严格验证。",
+
+    "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.": "Antigravity 自定义系统完整指南：详解技能、规则、插件、钩子与 MCP 服务器的加载机制与创建方法。",
+    "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.": "Google Antigravity 完整使用指南与速查手册（涵盖 CLI、IDE、斜杠指令、快捷键与各类自定义配置）。",
+    "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.": "交互式定时后台自动化创建指南：设计与配置周期性自动执行任务（支持 /automation 指令）。",
+    "How to render rich interactive HTML widgets inline in the chat or as standalone artifacts. Use this skill when you want to show the user diagrams, data visualizations, interactive controls, educational walkthroughs, or any rich visual content beyond plain text and markdown.": "在对话内或独立产物中渲染交互式 HTML 组件、图表、数据可视化与动态教学演示。",
+    "Migrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).": "将 Claude Code、Cursor、Codex、Gemini CLI 等工具中的 MCP、技能、指令与配置一键迁移到 Antigravity。",
+    "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.": "自动将旧版工作流迁移为新版技能（SKILL.md），并安全归档旧工作流文件。",
+    "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.": "（预览/高额度消耗）启动智能体集群：多个智能体并行协作并共享留言板，共同攻克可拆分的复杂任务。",
+    "Discover UI plugin panels relevant to the current task and surface a one-click pill in chat to open (toggle) them in the side pane. Use when a running UI plugin's panel would help with what the user is doing, or right after the user enables a new UI plugin pane and a shortcut to open it is handy.": "发现与当前任务相关的 UI 插件面板，并在对话中提供一键打开侧边面板的快捷入口。"
   }
 }

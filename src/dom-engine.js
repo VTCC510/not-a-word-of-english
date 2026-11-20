@@ -29,7 +29,8 @@
   const SEMVER_RE = /^v?\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?$/;
   const ENV_VAR_RE = /^(?:\$\{?[A-Z_][A-Z0-9_]*\}?|%[A-Z_][A-Z0-9_]*%)$/;
   const CLI_FLAG_RE = /^--?[a-zA-Z0-9][a-zA-Z0-9_-]*(?:=.*)?$/;
-  const SHELL_OPERATOR_RE = /(?:&&|\|\||>>?|2>&1|\$\(|`[^`]+`|\s\|\s)/;
+  const SHELL_OPERATOR_RE = /(?:&&|\|\||>>?|2>&1|\$\(|\s\|\s)/;
+  const BACKTICK_CMD_RE = /`[^`]+`/;
   const CAMEL_OR_SNAKE_RE = /^(?:[a-z]+[A-Z][A-Za-z0-9]*|[a-z][a-z0-9]*(?:_[a-z0-9]+)+)$/;
   const DOTTED_CODE_RE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:\(\))?$/;
   const KEBAB_SLUG_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
@@ -167,11 +168,14 @@
       if (FILE_WITH_EXT_RE.test(trimmed)) return true;
       if (SEMVER_RE.test(trimmed) || ENV_VAR_RE.test(trimmed) || CLI_FLAG_RE.test(trimmed)) return true;
       if (SHELL_OPERATOR_RE.test(trimmed)) return true;
+      if (trimmed.length <= 100 && BACKTICK_CMD_RE.test(trimmed)) return true;
       if (CAMEL_OR_SNAKE_RE.test(trimmed) || DOTTED_CODE_RE.test(trimmed)) return true;
       if (KEBAB_SLUG_RE.test(trimmed) || KEYCAP_OR_UNIT_RE.test(trimmed)) return true;
       if (preservedAcronyms.has(trimmed)) return true;
       if (POWERSHELL_CMDLET_RE.test(trimmed)) return true;
-      if (trimmed === trimmed.toLowerCase() && strictBareCommandSlugs.has(trimmed)) return true;
+      if (trimmed === trimmed.toLowerCase() && (preservedSlashCommands.has(trimmed) || strictBareCommandSlugs.has(trimmed))) {
+        return true;
+      }
 
       const parts = trimmed.split(/\s+/);
       if (parts.length >= 2) {
@@ -224,9 +228,12 @@
       const precededBySlash = Boolean(ctx && ctx.precededBySlash);
       const bilingualAll = Boolean(ctx && ctx.bilingualAll);
 
-      // 1. 斜杠指令标识符强制保护（/goal、/grill-me、/teamwork 等及紧跟 "/" 的拆分节点）
+      // 1. 斜杠指令标识符强制保护（/goal、/grill-me、/teamwork 等，以及 `/` 菜单中的全小写指令名如 browser / plan / schedule）
       if (SLASH_CMD_ONLY_RE.test(trimmed)) {
         return { translated: rawText, changed: false, reason: 'slash-command-locked' };
+      }
+      if (trimmed === trimmed.toLowerCase() && (preservedSlashCommands.has(trimmed) || strictBareCommandSlugs.has(trimmed))) {
+        return { translated: rawText, changed: false, reason: 'slash-bare-command-locked' };
       }
       if (precededBySlash && preservedSlashCommands.has(trimmed.toLowerCase())) {
         return { translated: rawText, changed: false, reason: 'slash-split-command-locked' };
@@ -262,19 +269,45 @@
         }
       }
 
-      // 3. 代码 / 路径 / 终端命令行启发式护盾
+      // 3. L1 精确词条直命中（含长说明与内置技能完整描述，O(1) 极速匹配）
+      if (staticExact.has(trimmed)) {
+        const exactHit = staticExact.get(trimmed);
+        const wantBilingual = isHighRisk || bilingualAll;
+        const finalText = wantBilingual ? ensureBilingual(exactHit, trimmed) : exactHit;
+        const out = preserveWhitespace(rawText, finalText);
+        return {
+          translated: out,
+          changed: out !== rawText,
+          reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-static' : 'static-exact',
+        };
+      }
+
+      // 3.5 长英文 UI/技能说明（>320 字符或含换行，仅允许锚定英文句子命中分桶模板）
+      if (!controlOnly && (trimmed.length > 320 || trimmed.includes('\n')) && trimmed.length <= 1600 && /^[A-Z(]/.test(trimmed)) {
+        const normalizedLong = trimmed.replace(/\s+/g, ' ');
+        const longPatternHit = matchBucketedPatterns(normalizedLong, compiledUiPatterns);
+        if (longPatternHit) {
+          const wantBilingual = isHighRisk || bilingualAll;
+          const finalText = wantBilingual ? ensureBilingual(longPatternHit, normalizedLong) : longPatternHit;
+          const out = preserveWhitespace(rawText, finalText);
+          return {
+            translated: out,
+            changed: out !== rawText,
+            reason: isHighRisk ? 'high-risk-pattern-upgraded' : bilingualAll ? 'bilingual-pattern' : 'ui-pattern-long',
+          };
+        }
+      }
+
+      // 4. 代码 / 路径 / 终端命令行启发式护盾
       if (looksLikeCodeOrCommand(trimmed)) {
         return { translated: rawText, changed: false, reason: 'code-or-command-shielded' };
       }
 
-      // 4. L1 静态精确查表（O(1)）
-      let staticHit = staticExact.get(trimmed);
-      if (staticHit === undefined && trimmed.length <= 64) {
-        staticHit = staticLower.get(trimmed.toLowerCase());
-      }
-      if (staticHit !== undefined) {
+      // 5. L1 短语大小写不敏感查表
+      if (trimmed.length <= 64 && staticLower.has(trimmed.toLowerCase())) {
+        const ciHit = staticLower.get(trimmed.toLowerCase());
         const wantBilingual = isHighRisk || bilingualAll;
-        const finalText = wantBilingual ? ensureBilingual(staticHit, trimmed) : staticHit;
+        const finalText = wantBilingual ? ensureBilingual(ciHit, trimmed) : ciHit;
         const out = preserveWhitespace(rawText, finalText);
         return {
           translated: out,
@@ -287,8 +320,9 @@
         return { translated: rawText, changed: false, reason: 'control-only-miss' };
       }
 
-      // 5. L2 关键词分桶动态模板匹配
-      const patternHit = matchBucketedPatterns(trimmed, compiledUiPatterns);
+      // 6. L2 关键词分桶动态模板匹配
+      const normalized = trimmed.includes('\n') ? trimmed.replace(/\s+/g, ' ') : trimmed;
+      const patternHit = matchBucketedPatterns(normalized, compiledUiPatterns);
       if (patternHit) {
         const wantBilingual = isHighRisk || bilingualAll;
         const finalText = wantBilingual ? ensureBilingual(patternHit, trimmed) : patternHit;

@@ -228,6 +228,65 @@ test('Slash command identifiers and split /command spans stay in English while t
   assert.equal(chatBox.textContent, 'Settings');
 });
 
+test('Slash typeahead menu preserves all bare lowercase command/skill identifiers while translating descriptions', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  const listbox = new MockElement('div', { role: 'listbox', 'aria-label': 'Typeahead menu' });
+  const rows = [
+    ['browser', 'Invoke a browser agent for web tasks.'],
+    ['plan', 'Plan carefully before executing a task.'],
+    ['grill-me', 'Interview me to align on a plan.'],
+    ['schedule', 'Run an instruction on a recurring schedule or as a one-time timer.'],
+    ['teamwork', 'Invoke a team of agents to autonomously tackle large projects.'],
+    [
+      'antigravity-guide',
+      'Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.',
+    ],
+    [
+      'chrome-extensions',
+      "Build and publish Chrome Extensions using Manifest V3 best practices. Use this skill whenever the user asks to create, modify, debug, or understand Chrome browser extensions, add-ons, or anything involving the Chrome Extensions API. Trigger on mentions of: 'Chrome extension', 'browser extension', 'manifest.json', 'content script', 'service worker' (in browser context), 'popup' (in browser extension context), 'side panel', 'chrome.* API', 'declarativeNetRequest', 'omnibox', 'context menu' (in extension context), 'userScripts', 'user script', 'script manager', or any request to build functionality that integrates with the Chrome browser UI. Also trigger for publishing to the Chrome Web Store: 'publish extension', preparing an extension for publishing, responding to a review rejection, writing permission justifications, or drafting a privacy policy.",
+    ],
+    [
+      'modern-web-guidance',
+      'Search tool for modern web development best practices. MANDATORY: Execute FIRST.\nTrigger immediately for: modals/dialogs/popovers, tables, dark mode.',
+    ],
+    ['automation', 'Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task.'],
+    ['generative_ui', 'How to render rich interactive HTML widgets inline in the chat or as standalone artifacts.'],
+  ];
+
+  const rowRefs = rows.map(([cmd, desc]) => {
+    const opt = new MockElement('div', { role: 'option' });
+    const nameEl = new MockElement('span');
+    nameEl.appendChild(new MockText(cmd));
+    const descEl = new MockElement('span');
+    descEl.appendChild(new MockText(desc));
+    opt.appendChild(nameEl);
+    opt.appendChild(descEl);
+    listbox.appendChild(opt);
+    return { cmd, nameEl, descEl };
+  });
+
+  // 对比验证：普通界面中的首字母大写 "Browser" / "Plan" 仍正常翻译
+  const navBrowser = new MockElement('span');
+  navBrowser.appendChild(new MockText('Browser'));
+  const navPlan = new MockElement('span');
+  navPlan.appendChild(new MockText('Plan'));
+
+  body.appendChild(listbox);
+  body.appendChild(navBrowser);
+  body.appendChild(navPlan);
+
+  installDomEngine(dom.win, bundle);
+
+  for (const r of rowRefs) {
+    assert.equal(r.nameEl.textContent, r.cmd, `Slash identifier "${r.cmd}" must remain untouched in English`);
+    assert.match(r.descEl.textContent, /[\u4e00-\u9fff]/, `Description for "${r.cmd}" should be translated to Chinese`);
+  }
+  assert.equal(navBrowser.textContent, '浏览器');
+  assert.equal(navPlan.textContent, '计划');
+});
+
 test('Code, paths, URLs, acronyms, PowerShell cmdlets, slugs, and shell commands are strictly shielded', () => {
   const t = createDomTranslator(bundle);
   const shieldedSamples = [
