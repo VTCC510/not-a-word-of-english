@@ -299,3 +299,73 @@ test('Dialog hook translates info dialogs, enforces bilingual safety on Confirm 
   assert.equal(env.dialogCalls[2].opts.buttonLabel, '打开');
   assert.equal(env.dialogCalls[2].opts.defaultPath, 'C:\\Users\\Demo\\Projects');
 });
+
+test('In-app pending-swap watcher pops up native restart confirmation once, deletes signal file, and triggers swap', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nawe-watcher-test-'));
+  try {
+    const stagedFile = path.join(tmpDir, 'app.asar.staged');
+    const pendingSwapPath = path.join(tmpDir, 'pending-swap.json');
+    fs.writeFileSync(stagedFile, 'mock-asar', 'utf8');
+    fs.writeFileSync(
+      pendingSwapPath,
+      JSON.stringify({
+        id: 'swap-req-1',
+        mode: 'prompt',
+        patchVersion: '1.0.5',
+        actionLabel: '汉化补丁替换',
+        stagedFile,
+        createdAt: new Date().toISOString(),
+      }),
+      'utf8'
+    );
+
+    const env = createMockElectron();
+    const triggered = [];
+    const hookRes = installMainHook(env.electron, nativeDict, {
+      pendingSwapPath,
+      pollIntervalMs: 60000,
+      triggerSwapFn: (info) => triggered.push(info),
+    });
+
+    assert.equal(hookRes.installed, true);
+    assert.equal(hookRes.swapWatcher.active, true);
+
+    await hookRes.swapWatcher.checkOnce();
+    hookRes.swapWatcher.stop();
+
+    assert.equal(fs.existsSync(pendingSwapPath), false, '信号文件应立即消费并删除');
+    assert.equal(env.dialogCalls.length, 1);
+    assert.deepEqual(env.dialogCalls[0].opts.buttons, ['立即重启生效', '稍后手动重启']);
+    assert.equal(triggered.length, 1);
+    assert.equal(triggered[0].id, 'swap-req-1');
+
+    // 二次轮询应为无操作，绝不重复弹窗
+    await hookRes.swapWatcher.checkOnce();
+    assert.equal(env.dialogCalls.length, 1);
+    assert.equal(triggered.length, 1);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Native menu and dialog translator tolerates ellipsis, curly quotes, casing, and trailing punctuation drift', () => {
+  const t = createNativeTranslator(nativeDict);
+  assert.equal(t.translateMenuLabel('New Window...'), '新建窗口...');
+  assert.equal(t.translateMenuLabel('Downloading Update\u2026'), '正在下载更新...');
+  assert.equal(t.translateMenuLabel('check for updates:'), '检查更新：');
+  assert.equal(
+    t.translateDialogText('There may be agents\u00a0or\nbackground tasks running.'),
+    '当前可能仍有智能体或后台任务正在运行。\n(There may be agents or background tasks running.)'
+  );
+  const translatedQuit = t.translateDialogOptions({
+    title: 'CONFIRM QUIT',
+    message: 'Are you sure you want to quit?',
+    buttons: ['cancel', 'Quit'],
+  });
+  assert.equal(translatedQuit.title, '确认退出 (Confirm Quit)');
+  assert.deepEqual(translatedQuit.buttons, ['取消 (Cancel)', '退出 (Quit)']);
+});

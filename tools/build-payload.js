@@ -166,6 +166,11 @@ function buildModifications(sourceAsarPath, options = {}) {
     modifications.set('dist/ideInstall/wizardPreload.js', origWizardPreload + preloadPayload);
   }
 
+  const origSshPromptPreload = asar.readFileText(sourceAsarPath, 'dist/remote/sshPromptPreload.js');
+  if (origSshPromptPreload && !origSshPromptPreload.includes(PRELOAD_MARKER)) {
+    modifications.set('dist/remote/sshPromptPreload.js', origSshPromptPreload + preloadPayload);
+  }
+
   return modifications;
 }
 

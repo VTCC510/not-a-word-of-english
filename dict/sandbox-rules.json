@@ -26,7 +26,10 @@
     "placeholder",
     "title",
     "aria-label",
-    "data-tooltip"
+    "aria-placeholder",
+    "aria-roledescription",
+    "data-tooltip",
+    "data-tooltip-content"
   ],
   "hardImmuneSelectors": [
     ".monaco-editor",
@@ -55,6 +58,9 @@
     ".markdown-body",
     ".prose",
     "[aria-label='File Viewer']",
+    "[aria-label='文件查看器']",
+    "[aria-label='Virtual File Viewer']",
+    "[aria-label='虚拟文件查看器']",
     "[data-message-role='user']",
     "[data-message-role='assistant']",
     "[data-role='user-message']",

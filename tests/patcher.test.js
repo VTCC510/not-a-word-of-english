@@ -160,7 +160,52 @@ test('Running/locked client triggers two-stage safe staging without mutating liv
     assert.equal(asar.verifyAsar(r.stagedFile, { checkIntegrity: true }).ok, true);
     if (process.platform === 'win32') {
       assert.equal(fs.existsSync(r.swapScriptPath), true);
+      const script = fs.readFileSync(r.swapScriptPath, 'utf8');
+      assert.ok(script.includes('--prompt'), '换包脚本应支持 --prompt 桌面顶层确认框模式');
+      assert.ok(script.includes('taskkill /F /IM "Antigravity.exe"'), '换包脚本应自动清理后台残留 Antigravity 进程');
+      assert.equal(script.includes('/T /IM'), false, '换包脚本禁止使用 /T 以免误杀自身父树');
+      assert.ok(script.includes(':MOVE_LOOP') && script.includes('move /Y'), '换包脚本应包含重试替换逻辑');
+      assert.ok(script.includes('\r\n'), '换包脚本必须使用 Windows CRLF 换行');
+      assert.equal(/[^\x00-\x7f]/.test(script), false, '换包脚本字面行必须保持纯 ASCII 以防 cmd.exe 乱码');
     }
+
+    // swapLaunchMode: 'prompt' 在旧版/未注入环境下应写出 pending-swap.json 供批处理一步接力
+    const promptRes = patcher.applyPendingStaged(mock.install, {
+      simulateLocked: true,
+      swapLaunchMode: 'prompt',
+    });
+    assert.equal(promptRes.applied, false);
+    assert.equal(promptRes.deliveryMethod, 'bat-one-step');
+    assert.equal(fs.existsSync(promptRes.pendingSwapPath), true);
+
+    // hasInAppSwapWatcher 版本判断：1.0.4 为 false，1.0.5 为 true
+    const v104Asar = path.join(mock.root, 'v104.asar');
+    asar.createAsarFromMap({
+      'dist/preload.js': '/* [NAWE-PRELOAD-ENGINE-BEGIN] */',
+      '.nawe-meta.json': JSON.stringify({ patchVersion: '1.0.4' }),
+    }, v104Asar);
+    const v105Asar = path.join(mock.root, 'v105.asar');
+    asar.createAsarFromMap({
+      'dist/preload.js': '/* [NAWE-PRELOAD-ENGINE-BEGIN] */',
+      '.nawe-meta.json': JSON.stringify({ patchVersion: '1.0.5' }),
+    }, v105Asar);
+    assert.equal(patcher.hasInAppSwapWatcher(v104Asar), false);
+    assert.equal(patcher.hasInAppSwapWatcher(v105Asar), true);
+
+    // applyPendingStaged 在仍处于模拟锁定时返回 pending 状态；解锁后立即完成原子替换
+    const pendingRes = patcher.applyPendingStaged(mock.install, {
+      simulateLocked: true,
+      swapLaunchMode: 'none',
+    });
+    assert.equal(pendingRes.applied, false);
+    assert.equal(pendingRes.mode, 'staged-pending-restart');
+
+    const appliedRes = patcher.applyPendingStaged(mock.install, {
+      isProcessRunning: () => false,
+    });
+    assert.equal(appliedRes.applied, true);
+    assert.equal(appliedRes.mode, 'immediate');
+    assert.ok(asar.readFileText(mock.asarPath, 'dist/preload.js').includes('staged'));
   } finally {
     mock.cleanup();
   }

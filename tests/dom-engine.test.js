@@ -700,3 +700,470 @@ test('Text selection popovers, shortcut-suffixed labels, and copy/clipboard popu
   assert.equal(t.translateText('Copied 5 lines').translated, '已复制 5 行');
   assert.equal(t.translateText('Quote lines 10-20').translated, '引用第 10-20 行');
 });
+
+test('Antigravity 2.34.0 voices, model effort tooltips, settings sections, and updated queue wording translate cleanly', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  // 1) 语音声线选择器弹窗（含拆分按钮文本 node "Use " + "Fola"）
+  const modal = new MockElement('div', { role: 'dialog' });
+  const voiceHeading = new MockElement('h2');
+  voiceHeading.appendChild(new MockText("Choose Antigravity's Voice"));
+  const voiceName = new MockElement('div', { 'data-testid': 'voice-picker-name' });
+  voiceName.appendChild(new MockText('Fola'));
+  const voiceTone = new MockElement('div');
+  voiceTone.appendChild(new MockText('Clear and friendly'));
+  const dotBtn = new MockElement('button', { 'aria-label': 'Fola, voice 1 of 9' });
+  const useBtn = new MockElement('button', { 'data-testid': 'voice-picker-use' });
+  useBtn.appendChild(new MockText('Use '));
+  useBtn.appendChild(new MockText('Fola'));
+  modal.appendChild(voiceHeading);
+  modal.appendChild(voiceName);
+  modal.appendChild(voiceTone);
+  modal.appendChild(dotBtn);
+  modal.appendChild(useBtn);
+  body.appendChild(modal);
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(voiceHeading.textContent, '选择 Antigravity 的语音声线');
+  assert.equal(voiceName.textContent, '芙拉');
+  assert.equal(voiceTone.textContent, '清晰亲切');
+  assert.equal(dotBtn.getAttribute('aria-label'), '声线 Fola（第 1 / 9 个）');
+  assert.equal(useBtn.textContent, '使用 芙拉');
+
+  const t = createDomTranslator(bundle);
+  // 全部 9 个内置声线及描述词均完整覆盖
+  const expectedVoices = [
+    ['Fola', '芙拉'],
+    ['Arlo', '阿洛'],
+    ['Cleo', '克莉奥'],
+    ['Finn', '芬恩'],
+    ['Gero', '杰罗'],
+    ['Lora', '洛拉'],
+    ['Neno', '尼诺'],
+    ['Olin', '奥林'],
+    ['Tari', '塔里'],
+  ];
+  for (const [en, zh] of expectedVoices) {
+    assert.equal(t.translateText(en).translated, zh);
+  }
+  assert.equal(t.translateText('Confident and clear').translated, '自信清晰');
+  assert.equal(t.translateText('Warm and engaging').translated, '温暖且富有感染力');
+  assert.equal(t.translateText('Warm and approachable').translated, '温和亲近');
+  assert.equal(t.translateText('Deep and velvety').translated, '低沉醇厚');
+  assert.equal(t.translateText('Light and precise').translated, '轻快干脆');
+
+  // 2) Input Box 排队消息改为“立即发送”
+  assert.equal(t.translateText('Send Immediately').translated, '立即发送');
+  assert.equal(t.translateText('Alt+Enter Sends immediately').translated, '按 Alt+Enter 键：立即发送');
+
+  // 3) 2.34.0 新增模型选择器、置顶对话、更新与工具权限设置文案
+  assert.equal(t.translateText('Thinking effort').translated, '思考深度');
+  assert.equal(t.translateText('Extra High').translated, '超高');
+  assert.equal(t.translateText('Leaving Soon').translated, '即将下线');
+  assert.equal(t.translateText('For your hardest, long-horizon tasks').translated, '专为最复杂、超长跨度的高难度任务打造');
+  assert.equal(
+    t.translateText('The original Gemini 4 model for advanced workflows. Leaving on Nov 30.').translated,
+    '面向进阶工作流的初代 Gemini 4 模型，将于 11 月 30 日下线。'
+  );
+  assert.equal(t.translateText('Pinned Conversations').translated, '置顶对话');
+  assert.equal(t.translateText('Show 6 More').translated, '再显示 6 项');
+  assert.equal(t.translateText('Input Box').translated, '输入框');
+  assert.equal(t.translateText('File access rules').translated, '文件访问规则');
+  assert.equal(t.translateText('Terminal commands').translated, '终端命令');
+  assert.equal(t.translateText('MCP tools').translated, 'MCP 工具');
+  assert.equal(t.translateText('Commands outside sandbox').translated, '沙盒外允许执行的命令 (Commands outside sandbox)');
+  assert.match(
+    t.translateText('Controls whether terminal commands require your approval before running.\n\nNote: A change to this setting will only apply to new messages sent to the agent.').translated,
+    /控制运行终端命令前是否需要人工批准/
+  );
+
+  // 4) 客户端更新胶囊 / 弹窗 / 单单位重置倒计时
+  assert.equal(t.translateText('Downloading Update').translated, '正在下载更新');
+  assert.equal(t.translateText('Install Update').translated, '安装更新');
+  assert.equal(t.translateText('Installing Update').translated, '正在安装更新');
+  assert.equal(t.translateText('Restart to Update').translated, '重启以更新');
+  assert.equal(t.translateText('Updating…').translated, '正在更新…');
+  assert.equal(t.translateText('Update Anyway').translated, '仍然更新');
+  assert.equal(t.translateText('Active Tasks & Conversations:').translated, '进行中的任务与对话：');
+  assert.equal(
+    t.translateText('You have 3 conversations in progress. Updating will interrupt them, and they will automatically resume once the update completes.').translated,
+    '当前有 3 个对话正在进行中。更新将暂时中断这些对话，更新完成后会自动恢复继续执行。'
+  );
+  assert.equal(
+    t.translateText("You have 2 conversations in progress. Updating will cancel them and you'll need to manually restart them.").translated,
+    '当前有 2 个对话正在进行中。更新将取消这些对话，之后你需要手动重新发起。'
+  );
+  assert.equal(t.translateText('A new version is available.').translated, '发现新版本可用。');
+  assert.equal(t.translateText('Resets in <1m').translated, '将在 1 分钟内重置');
+  assert.equal(t.translateText('Resets in 2d').translated, '将在 2 天后重置');
+  assert.equal(t.translateText('Resets in 4h').translated, '将在 4 小时后重置');
+  assert.equal(t.translateText('Copy Content').translated, '复制内容');
+  assert.equal(t.translateText('Download File').translated, '下载文件');
+  assert.equal(t.translateText('Show in File Explorer').translated, '在文件资源管理器中显示');
+});
+
+test('Antigravity 2.35.1 Models/Credits, Orchestrator, Permissions, Browser Rules, Customizations, Skills, and Marketplace translate cleanly', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  // 1) Customizations 列表：验证斜杠指令原词锁定，而插件/技能说明、Search/Built In/Sign in required/空态全部汉化
+  const searchInput = new MockElement('input', { placeholder: 'Search customizations...' });
+  const skillsHeading = new MockElement('h2');
+  skillsHeading.appendChild(new MockText('Skills & Rules'));
+
+  const listbox = new MockElement('div', { role: 'listbox' });
+  const skillRows = [
+    [
+      '/conversations',
+      'Built In',
+      'Manage local Antigravity conversations programmatically over HTTP+JSON: create a new conversation (with an optional initial prompt), list conversations, read conversation metadata and run state, rename, archive, pin, star, tag, or group conversations, and delete conversations.',
+    ],
+    [
+      '/mcp-app-development',
+      'Built In',
+      'Build, package, and debug MCP Apps for Antigravity: MCP server tools whose results render as interactive UI in the conversation, in the side pane, or full-page from the sidebar.',
+    ],
+    [
+      '/permissioned-github',
+      'Built In',
+      'Guidelines for interacting with GitHub and request permissions from the user when commands fail due to restrictions in the agent environment.',
+    ],
+    [
+      '/swarm_pane',
+      'Built In',
+      "ONLY for the coordinator of an active /swarm session. What the coordinator writes so the Swarm UI's Overview can show the swarm's goal, its groups of work and a screenshot timeline; load it before you brief and add the first workers. Outside /swarm, do not load this.",
+    ],
+  ];
+
+  const rowRefs = skillRows.map(([cmd, badge, desc]) => {
+    const opt = new MockElement('div', { role: 'option' });
+    const cmdEl = new MockElement('span');
+    cmdEl.appendChild(new MockText(cmd));
+    const badgeEl = new MockElement('span');
+    badgeEl.appendChild(new MockText(badge));
+    const descEl = new MockElement('span');
+    descEl.appendChild(new MockText(desc));
+    opt.appendChild(cmdEl);
+    opt.appendChild(badgeEl);
+    opt.appendChild(descEl);
+    listbox.appendChild(opt);
+    return { cmd, cmdEl, badgeEl, descEl };
+  });
+
+  const emptyAgents = new MockElement('p');
+  emptyAgents.appendChild(new MockText('No custom agents yet.'));
+  const emptyMcp = new MockElement('p');
+  emptyMcp.appendChild(new MockText('No MCP servers yet. Use Add to browse the store.'));
+
+  body.appendChild(searchInput);
+  body.appendChild(skillsHeading);
+  body.appendChild(listbox);
+  body.appendChild(emptyAgents);
+  body.appendChild(emptyMcp);
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(searchInput.getAttribute('placeholder'), '搜索自定义配置...');
+  assert.equal(skillsHeading.textContent, '技能与规则');
+  for (const r of rowRefs) {
+    assert.equal(r.cmdEl.textContent, r.cmd, `Slash identifier "${r.cmd}" must stay locked`);
+    assert.equal(r.badgeEl.textContent, '内置');
+    assert.match(r.descEl.textContent, /[\u4e00-\u9fff]/);
+  }
+  assert.equal(emptyAgents.textContent, '暂无自定义智能体。');
+  assert.equal(emptyMcp.textContent, '暂无 MCP 服务器，点击添加按钮即可浏览商店。');
+
+  const t = createDomTranslator(bundle);
+
+  // 2) Models & Usage / AI Credits / Orchestrator / Quota
+  assert.equal(
+    t.translateText(
+      "When toggled on, Antigravity will use your AI credits to fulfill model requests once you're out of model quota. Antigravity will always use your model quota first before using AI credits."
+    ).translated,
+    '开启后，当你的模型配额用尽时，Antigravity 将使用 AI 积分继续处理模型请求。系统会始终优先消耗模型配额，再使用 AI 积分。'
+  );
+  assert.equal(t.translateText('Available AI credits: 1200').translated, '可用 AI 积分：1200');
+  assert.equal(t.translateText('Orchestrator Settings').translated, '编排器设置');
+  assert.equal(t.translateText('Orchestrator Model').translated, '编排器模型');
+  assert.equal(t.translateText('Executor Model').translated, '执行器模型');
+  assert.equal(t.translateText('Model selection').translated, '模型选择');
+  assert.equal(
+    t.translateText(
+      'You have hit your weekly limit, it refreshes in 39 minutes. If on a supported paid plan, you can use AI credits in the interim or upgrade to a higher tier.'
+    ).translated,
+    '你已达到每周限额，将于 39 分钟后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。'
+  );
+  assert.equal(
+    t.translateText(
+      'You have hit your weekly limit, the 5-hour limit does not currently apply. Your weekly limit will fully refresh in 39 minutes.'
+    ).translated,
+    '你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 39 分钟后完全重置。'
+  );
+  assert.equal(
+    t.translateText('You need at least 50 AI Credits to send messages. To continue using Gemini 4 Neon now, purchase more AI Credits.').translated,
+    '需要至少 50 AI 积分才能发送消息。若需立即继续使用 Gemini 4 Neon，请购买更多 AI 积分。'
+  );
+  assert.equal(
+    t.translateText('Quota is shared across all models in this group.').translated,
+    '该分组内的所有模型共享同一配额。'
+  );
+  assert.equal(
+    t.translateText('Models in this group share the same quota pool.').translated,
+    '该分组内的模型共享同一配额池。'
+  );
+  assert.match(
+    t.translateText('Models in this group share the 5-hour and weekly quota.').translated,
+    /^该分组内的模型共享 /
+  );
+
+  // 3) Tool Permissions & Browser Actuation Rules
+  assert.equal(t.translateText('Plugin permissions').translated, '插件权限');
+  assert.equal(t.translateText('Changes plugins can make without asking.').translated, '插件无需再次询问即可执行的更改操作。');
+  assert.equal(
+    t.translateText("Nothing is always allowed. You'll be asked before this plugin makes changes.").translated,
+    '当前无始终允许的操作。插件在执行更改前会向你请求确认。'
+  );
+  assert.equal(t.translateText('Browser actuation rules').translated, '浏览器操作规则');
+  assert.equal(t.translateText('Browser Actuation Permissions').translated, '浏览器操作权限');
+  assert.equal(t.translateText('Execute URLs').translated, '允许操作的网址');
+  assert.equal(t.translateText('Download files').translated, '下载文件');
+  assert.equal(t.translateText('Clear Browsing Data?').translated, '清除浏览数据？');
+  assert.equal(t.translateText('3 cookies').translated, '3 个 Cookie');
+
+  // 4) 已安装插件、技能、应用市场货架与代表性插件（含 >320 字符描述）
+  assert.equal(t.translateText('Sign in required').translated, '需要登录');
+  assert.equal(t.translateText('Unlock the power of agent swarms.').translated, '释放多智能体集群协作的强大能力。');
+  assert.equal(
+    t.translateText('Access and clone GitHub repositories in remote environments.').translated,
+    '在远程环境中访问并克隆 GitHub 代码仓库。'
+  );
+  assert.equal(
+    t.translateText(
+      'Reliable automation, in-depth debugging, and performance analysis in Chrome using Chrome DevTools and Puppeteer'
+    ).translated,
+    '借助 Chrome DevTools 与 Puppeteer，在 Chrome 中实现可靠的自动化、深度调试与性能分析。'
+  );
+  assert.equal(t.translateText('Search, read, draft, and send emails in Gmail.').translated, '在 Gmail 中搜索、阅读、起草和发送电子邮件。');
+  assert.equal(t.translateText('Google Workspace').translated, 'Google Workspace 办公套件');
+  assert.equal(t.translateText('Build with Google').translated, 'Google 开发者平台');
+  assert.equal(t.translateText('Design, Creative & Media').translated, '设计、创意与媒体');
+  assert.equal(t.translateText('Productivity & Project Management').translated, '效率与项目管理');
+  assert.equal(
+    t.translateText('Enter the configuration values this MCP server needs. Saving restarts the server with them.').translated,
+    '请输入此 MCP 服务器所需的配置参数，保存后将使用新配置重启服务器。'
+  );
+  assert.match(
+    t.translateText(
+      "This plugin provides a specialized suite of skills for data engineers and database practitioners working on Google Cloud. It acts as an expert assistant, allowing you to use natural language prompts in your preferred coding agent to architect complex data pipelines, transform data with dbt, write Spark and BigQuery SQL notebooks, and orchestrate end-to-end workflows across GCP's data ecosystem."
+    ).translated,
+    /专为 Google Cloud 数据工程师/
+  );
+  assert.match(
+    t.translateText(
+      'Teamwork Graph CLI is Atlassian\'s agent-first interface to your entire work context: Jira issues, Confluence pages, Bitbucket PRs, along with your connected third-party data sources. Purpose-built for coding agents like Antigravity (terminal or desktop), and powered by Atlassian\'s context graph. Try: "draft a Jira issue from this PR and link it to the epic." Run /twg-setup after install to connect Atlassian Teamwork Graph CLI to Antigravity.'
+    ).translated,
+    /Teamwork Graph CLI 是 Atlassian/
+  );
+});
+
+test('Anti-drift resilience preserves translations across typography, casing, punctuation, multiline JSX, and DOM refactors without breaching code shields', () => {
+  const t = createDomTranslator(bundle);
+
+  // 1) 弯引号、省略号（… vs ...）、换行/不间断空格、连字符、大小写（>64 字符长句）与末尾标点漂移
+  assert.equal(
+    t.translateText(
+      'when toggled on, Antigravity will use your AI credits to fulfill model requests once you\u2019re out of model quota.\nAntigravity will always use\u00a0your model quota first before using AI credits.'
+    ).translated,
+    '开启后，当你的模型配额用尽时，Antigravity 将使用 AI 积分继续处理模型请求。系统会始终优先消耗模型配额，再使用 AI 积分。'
+  );
+  assert.equal(t.translateText('Sign-in required').translated, '需要登录');
+  assert.equal(t.translateText('Built-in').translated, '内置');
+  assert.equal(t.translateText('Search projects...').translated, '搜索项目…');
+  assert.equal(t.translateText('Search customizations\u2026').translated, '搜索自定义配置...');
+  assert.equal(t.translateText('No Plugins Available').translated, '暂无可用插件');
+  assert.equal(t.translateText('No plugins available').translated, '暂无可用插件');
+  assert.equal(t.translateText('No custom agents yet').translated, '暂无自定义智能体');
+  assert.equal(t.translateText('Downloading update\u2026').translated, '正在下载更新...');
+  assert.equal(t.translateText('Something went wrong!').translated, '出现了一些问题！');
+  assert.equal(t.translateText('Source:').translated, '源码：');
+  assert.equal(t.translateText('Loading').translated, '正在加载');
+  assert.equal(t.translateText('Working...').translated, '处理中...');
+  assert.equal(t.translateText('Settings - ').translated, '设置 - ');
+
+  // 2) 动态模板在弯引号与换行下仍准确命中
+  assert.equal(
+    t.translateText(
+      'Your plan\u2019s baseline quota will refresh on\n5/1/2026. To continue using this model now, enable AI Credit overages.'
+    ).translated,
+    '你的方案基础配额将于 5/1/2026 重置。若需立即继续使用此模型，请开启 AI 积分超额计费。'
+  );
+
+  // 3) 高风险长句即使大小写/弯引号微调，仍强制保留英文双语对照（绝不降级）
+  const hrDrifted = t.translateText(
+    'CONTROLS WHETHER THE AGENT CAN RUN CUSTOM JAVASCRIPT TO AUTOMATE COMPLEX BROWSER ACTIONS.'
+  );
+  assert.equal(hrDrifted.changed, true);
+  assert.match(hrDrifted.translated, /Browser|JavaScript/i);
+  assert.match(hrDrifted.translated, /[\u4e00-\u9fff]/);
+
+  // 4) 安全护盾零回退：代码/路径/命令/kebab-slug/缩写/裸斜杠词依然 100% 锁定
+  for (const shielded of [
+    'modern-web-guidance',
+    'API',
+    'JSON',
+    'useEffect',
+    'git push --force origin main',
+    'rm -rf /tmp/build',
+    'C:\\Users\\Demo\\app.asar',
+  ]) {
+    const res = t.translateText(shielded);
+    assert.equal(res.changed, false, `Expected "${shielded}" to remain shielded, got "${res.translated}"`);
+  }
+
+  // 5) DOM/React 抗重构：UI 控件内 4+ 单词 span 正常翻译，流式英文正文与 File Viewer 仍受保护，扩展属性生效
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  const tablist = new MockElement('div', { role: 'tablist' });
+  const spans = ['Low', 'Medium', 'High', 'Auto'].map((w) => {
+    const s = new MockElement('span');
+    s.appendChild(new MockText(w));
+    tablist.appendChild(s);
+    return s;
+  });
+
+  const streamP = new MockElement('p');
+  const streamSpans = ['The', 'request', 'Allow', 'Error', 'was', 'checked.'].map((w) => {
+    const s = new MockElement('span');
+    s.appendChild(new MockText(w));
+    streamP.appendChild(s);
+    return s;
+  });
+
+  const fileViewer = new MockElement('div', { 'aria-label': 'File Viewer' });
+  const innerCodeSpan = new MockElement('span');
+  innerCodeSpan.appendChild(new MockText('Open'));
+  fileViewer.appendChild(innerCodeSpan);
+
+  const customInput = new MockElement('div', {
+    'aria-placeholder': 'Search customizations...',
+    'data-tooltip-content': 'Refresh quota and credits data',
+  });
+  const localizedViewer = new MockElement('div', { 'aria-label': '文件查看器' });
+  const localizedInnerSpan = new MockElement('span');
+  localizedInnerSpan.appendChild(new MockText('Open'));
+  localizedViewer.appendChild(localizedInnerSpan);
+
+  body.appendChild(tablist);
+  body.appendChild(streamP);
+  body.appendChild(fileViewer);
+  body.appendChild(localizedViewer);
+  body.appendChild(customInput);
+
+  const { controller } = installDomEngine(dom.win, bundle);
+
+  assert.deepEqual(
+    spans.map((s) => s.textContent),
+    ['低', '中', '高', '自动']
+  );
+  assert.deepEqual(
+    streamSpans.map((s) => s.textContent),
+    ['The', 'request', 'Allow', 'Error', 'was', 'checked.']
+  );
+  assert.equal(fileViewer.getAttribute('aria-label'), 'File Viewer');
+  assert.equal(innerCodeSpan.textContent, 'Open');
+  assert.equal(localizedInnerSpan.textContent, 'Open');
+  controller.rescan();
+  assert.equal(innerCodeSpan.textContent, 'Open');
+  assert.equal(customInput.getAttribute('aria-placeholder'), '搜索自定义配置...');
+  assert.equal(customInput.getAttribute('data-tooltip-content'), '刷新配额与积分数据');
+});
+
+test('Model group/lock tooltips, Firebase detail page, all 9 Marketplace shelves, and MCP/account setup screens translate cleanly', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  // 1) 模拟 Firebase 插件详情页（概览提示词、Commands 列表、技能与智能体说明，斜杠标识锁定）
+  const detailPage = new MockElement('div');
+  const promptBtn = new MockElement('button');
+  promptBtn.appendChild(new MockText('Set up Firebase in my app and connect it to a Firebase project'));
+  const cmdHeading = new MockElement('h3');
+  cmdHeading.appendChild(new MockText('Commands'));
+  const cmdRow = new MockElement('div', { role: 'option' });
+  const cmdSlug = new MockElement('span');
+  cmdSlug.appendChild(new MockText('/firebase-hosting-basics'));
+  const cmdDesc = new MockElement('span');
+  cmdDesc.appendChild(
+    new MockText(
+      "Deploys and configures classic Firebase Hosting for static websites, single-page apps (SPAs), and microservices. Use when deploying static sites/SPAs, setting up custom domains, configuring firebase.json hosting settings (redirects, rewrites, headers, multi-site), or managing preview channels. Don't use for Firebase App Hosting (Next.js/SSR), Auth, Firestore queries/rules, Data Connect, or Crashlytics."
+    )
+  );
+  cmdRow.appendChild(cmdSlug);
+  cmdRow.appendChild(cmdDesc);
+
+  const readmeSection = new MockElement('section', { 'aria-label': 'Readme', 'data-markdown-root': '' });
+  const readmeH2 = new MockElement('h2');
+  readmeH2.appendChild(new MockText('🚀 Key Capabilities'));
+  readmeSection.appendChild(readmeH2);
+
+  detailPage.appendChild(promptBtn);
+  detailPage.appendChild(cmdHeading);
+  detailPage.appendChild(cmdRow);
+  detailPage.appendChild(readmeSection);
+  body.appendChild(detailPage);
+
+  installDomEngine(dom.win, bundle);
+
+  assert.match(promptBtn.textContent, /[\u4e00-\u9fff]/);
+  assert.equal(cmdHeading.textContent, '指令');
+  assert.equal(cmdSlug.textContent, '/firebase-hosting-basics');
+  assert.match(cmdDesc.textContent, /Firebase Hosting/);
+  assert.match(cmdDesc.textContent, /[\u4e00-\u9fff]/);
+  assert.equal(readmeSection.getAttribute('aria-label'), '自述说明');
+  assert.equal(readmeH2.textContent, '🚀 核心能力');
+
+  const t = createDomTranslator(bundle);
+
+  // 2) Gemini / Claude & GPT 分组右侧提示弹窗 + 智能体运行中禁止切换模型提示弹窗
+  assert.equal(
+    t.translateText(
+      'Models within this group: Gemini 4 Neon, Gemini 4 Carbon, Gemini 4 Argon, Gemini 4 Hydrogen, Orchestrator (Neon), Orchestrator (Carbon), Orchestrator (Argon), Gemini 3.8 Flash'
+    ).translated,
+    '该分组包含的模型：Gemini 4 Neon, Gemini 4 Carbon, Gemini 4 Argon, Gemini 4 Hydrogen, Orchestrator (Neon), Orchestrator (Carbon), Orchestrator (Argon), Gemini 3.8 Flash'
+  );
+  assert.equal(
+    t.translateText('Models within this group: Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B').translated,
+    '该分组包含的模型：Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B'
+  );
+  assert.equal(
+    t.translateText('Model cannot be changed while the agent is running').translated,
+    '智能体运行期间无法切换模型'
+  );
+
+  // 3) Firebase 其他推荐提示词与应用配置弹窗（MCP 参数、OAuth 账号、侧边栏 UI 插件）
+  assert.match(t.translateText('Add Firebase Authentication with Google sign-in to my app').translated, /[\u4e00-\u9fff]/);
+  assert.match(t.translateText('Write and audit Firestore security rules for my data model').translated, /[\u4e00-\u9fff]/);
+  assert.equal(t.translateText('Configure looker').translated, '配置 looker');
+  assert.equal(t.translateText('Looker Instance FQDN').translated, 'Looker 实例完整域名（FQDN）');
+  assert.equal(t.translateText('n8n MCP server URL').translated, 'n8n MCP 服务器地址');
+  assert.equal(t.translateText('Arize API Key').translated, 'Arize API 密钥');
+  assert.equal(t.translateText('Neo4j URI').translated, 'Neo4j 连接地址（URI）');
+  assert.equal(t.translateText('Android Device Hub').translated, 'Android 设备中心');
+  assert.equal(t.translateText('Biomolecular Structure Viewer').translated, '生物大分子 3D 结构查看器');
+  assert.equal(
+    t.translateText('The looker MCP server requires configuration parameters before it can be started.').translated,
+    '启动 looker MCP 服务器前需要先填写配置参数。'
+  );
+  assert.equal(
+    t.translateText('Sign in to finish setting up this plugin.').translated,
+    '请登录以完成此插件的配置。'
+  );
+  assert.equal(
+    t.translateText('Credentials stay on this machine and are only sent to the domains listed.').translated,
+    '凭据仅保存在本机，且只会发送至所列域名。'
+  );
+  assert.equal(t.translateText('Generate Figma Design').translated, '生成 Figma 设计稿');
+});
+

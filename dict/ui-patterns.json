@@ -5,610 +5,1956 @@
   },
   "patterns": [
     {
-      "keywords": ["file", "files"],
+      "keywords": [
+        "file",
+        "files"
+      ],
       "pattern": "^(\\d+)\\s+files?\\s+changed$",
       "flags": "i",
       "replacement": "已变更 $1 个文件"
     },
     {
-      "keywords": ["file", "files"],
+      "keywords": [
+        "file",
+        "files"
+      ],
       "pattern": "^(\\d+)\\s+files?\\s+selected$",
       "flags": "i",
       "replacement": "已选择 $1 个文件"
     },
     {
-      "keywords": ["file", "files"],
+      "keywords": [
+        "file",
+        "files"
+      ],
       "pattern": "^(\\d+)\\s+files?\\s+attached$",
       "flags": "i",
       "replacement": "已附加 $1 个文件"
     },
     {
-      "keywords": ["file", "files"],
+      "keywords": [
+        "file",
+        "files"
+      ],
       "pattern": "^View\\s+(\\d+)\\s+files?$",
       "flags": "i",
       "replacement": "查看 $1 个文件"
     },
     {
-      "keywords": ["change", "changes"],
+      "keywords": [
+        "change",
+        "changes"
+      ],
       "pattern": "^(\\d+)\\s+changes?$",
       "flags": "i",
       "replacement": "$1 处变更"
     },
     {
-      "keywords": ["line", "lines"],
+      "keywords": [
+        "line",
+        "lines"
+      ],
       "pattern": "^(\\d+)\\s+lines?\\s+added$",
       "flags": "i",
       "replacement": "新增 $1 行"
     },
     {
-      "keywords": ["line", "lines"],
+      "keywords": [
+        "line",
+        "lines"
+      ],
       "pattern": "^(\\d+)\\s+lines?\\s+removed$",
       "flags": "i",
       "replacement": "删除 $1 行"
     },
     {
-      "keywords": ["line", "lines"],
+      "keywords": [
+        "line",
+        "lines"
+      ],
       "pattern": "^(\\d+)\\s+lines?\\s+hidden$",
       "flags": "i",
       "replacement": "已折叠 $1 行"
     },
     {
-      "keywords": ["line", "lines"],
+      "keywords": [
+        "line",
+        "lines"
+      ],
       "pattern": "^Show\\s+(\\d+)\\s+more\\s+lines?$",
       "flags": "i",
       "replacement": "再显示 $1 行"
     },
     {
-      "keywords": ["step"],
+      "keywords": [
+        "step"
+      ],
       "pattern": "^Step\\s+(\\d+)\\s+of\\s+(\\d+)$",
       "flags": "i",
       "replacement": "第 $1 / $2 步"
     },
     {
-      "keywords": ["step", "steps"],
+      "keywords": [
+        "step",
+        "steps"
+      ],
       "pattern": "^(\\d+)\\s+steps?\\s+completed$",
       "flags": "i",
       "replacement": "已完成 $1 个步骤"
     },
     {
-      "keywords": ["of"],
+      "keywords": [
+        "of"
+      ],
       "pattern": "^(\\d+)\\s+of\\s+(\\d+)\\s+results?$",
       "flags": "i",
       "replacement": "第 $1 / $2 条结果"
     },
     {
-      "keywords": ["of"],
+      "keywords": [
+        "of"
+      ],
       "pattern": "^(\\d+)\\s+of\\s+(\\d+)\\s+selected$",
       "flags": "i",
       "replacement": "已选择 $1 / $2 项"
     },
     {
-      "keywords": ["showing"],
+      "keywords": [
+        "showing"
+      ],
       "pattern": "^Showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
       "flags": "i",
       "replacement": "正在显示 $1 / $2 项"
     },
     {
-      "keywords": ["result", "results"],
+      "keywords": [
+        "result",
+        "results"
+      ],
       "pattern": "^(\\d+)\\s+results?$",
       "flags": "i",
       "replacement": "$1 条结果"
     },
     {
-      "keywords": ["match", "matches"],
+      "keywords": [
+        "match",
+        "matches"
+      ],
       "pattern": "^(\\d+)\\s+match(?:es)?$",
       "flags": "i",
       "replacement": "$1 处匹配"
     },
     {
-      "keywords": ["item", "items"],
+      "keywords": [
+        "item",
+        "items"
+      ],
       "pattern": "^(\\d+)\\s+items?$",
       "flags": "i",
       "replacement": "$1 个项目"
     },
     {
-      "keywords": ["conversation", "conversations"],
+      "keywords": [
+        "conversation",
+        "conversations"
+      ],
       "pattern": "^(\\d+)\\s+conversations?$",
       "flags": "i",
       "replacement": "$1 个对话"
     },
     {
-      "keywords": ["message", "messages"],
+      "keywords": [
+        "message",
+        "messages"
+      ],
       "pattern": "^(\\d+)\\s+messages?$",
       "flags": "i",
       "replacement": "$1 条消息"
     },
     {
-      "keywords": ["agent", "agents"],
+      "keywords": [
+        "agent",
+        "agents"
+      ],
       "pattern": "^(\\d+)\\s+agents?\\s+running$",
       "flags": "i",
       "replacement": "$1 个智能体运行中"
     },
     {
-      "keywords": ["subagent", "subagents"],
+      "keywords": [
+        "subagent",
+        "subagents"
+      ],
       "pattern": "^(\\d+)\\s+subagents?\\s+running$",
       "flags": "i",
       "replacement": "$1 个子智能体运行中"
     },
     {
-      "keywords": ["task", "tasks"],
+      "keywords": [
+        "task",
+        "tasks"
+      ],
       "pattern": "^(\\d+)\\s+background\\s+tasks?$",
       "flags": "i",
       "replacement": "$1 个后台任务"
     },
     {
-      "keywords": ["task", "tasks"],
+      "keywords": [
+        "task",
+        "tasks"
+      ],
       "pattern": "^(\\d+)\\s+active\\s+tasks?$",
       "flags": "i",
       "replacement": "$1 个进行中任务"
     },
     {
-      "keywords": ["task", "tasks"],
+      "keywords": [
+        "task",
+        "tasks"
+      ],
       "pattern": "^(\\d+)\\s+tasks?\\s+completed$",
       "flags": "i",
       "replacement": "已完成 $1 个任务"
     },
     {
-      "keywords": ["tool", "tools"],
+      "keywords": [
+        "tool",
+        "tools"
+      ],
       "pattern": "^(\\d+)\\s+tool\\s+calls?$",
       "flags": "i",
       "replacement": "$1 次工具调用"
     },
     {
-      "keywords": ["plugin", "plugins"],
+      "keywords": [
+        "plugin",
+        "plugins"
+      ],
       "pattern": "^(\\d+)\\s+plugins?\\s+installed$",
       "flags": "i",
       "replacement": "已安装 $1 个插件"
     },
     {
-      "keywords": ["error", "errors"],
+      "keywords": [
+        "error",
+        "errors"
+      ],
       "pattern": "^(\\d+)\\s+errors?$",
       "flags": "i",
       "replacement": "$1 个错误"
     },
     {
-      "keywords": ["warning", "warnings"],
+      "keywords": [
+        "warning",
+        "warnings"
+      ],
       "pattern": "^(\\d+)\\s+warnings?$",
       "flags": "i",
       "replacement": "$1 条警告"
     },
     {
-      "keywords": ["unread"],
+      "keywords": [
+        "unread"
+      ],
       "pattern": "^(\\d+)\\s+unread$",
       "flags": "i",
       "replacement": "$1 条未读"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*s(?:ec(?:ond)?s?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 秒前"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 分钟前"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*h(?:ours?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 小时前"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*d(?:ays?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 天前"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*w(?:eeks?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 周前"
     },
     {
-      "keywords": ["ago"],
+      "keywords": [
+        "ago"
+      ],
       "pattern": "^(\\d+)\\s*mo(?:nths?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 个月前"
     },
     {
-      "keywords": ["updated"],
+      "keywords": [
+        "updated"
+      ],
       "pattern": "^Updated\\s+(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 分钟前更新"
     },
     {
-      "keywords": ["updated"],
+      "keywords": [
+        "updated"
+      ],
       "pattern": "^Updated\\s+(\\d+)\\s*h(?:ours?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 小时前更新"
     },
     {
-      "keywords": ["updated"],
+      "keywords": [
+        "updated"
+      ],
       "pattern": "^Updated\\s+(\\d+)\\s*d(?:ays?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 天前更新"
     },
     {
-      "keywords": ["updated"],
+      "keywords": [
+        "updated"
+      ],
       "pattern": "^Updated\\s+just\\s+now$",
       "flags": "i",
       "replacement": "刚刚更新"
     },
     {
-      "keywords": ["edited"],
+      "keywords": [
+        "edited"
+      ],
       "pattern": "^Edited\\s+(\\d+)\\s*m(?:in(?:ute)?s?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 分钟前编辑"
     },
     {
-      "keywords": ["edited"],
+      "keywords": [
+        "edited"
+      ],
       "pattern": "^Edited\\s+(\\d+)\\s*h(?:ours?)?\\s+ago$",
       "flags": "i",
       "replacement": "$1 小时前编辑"
     },
     {
-      "keywords": ["created"],
+      "keywords": [
+        "created"
+      ],
       "pattern": "^Created\\s+(\\d+)\\s*([smhd])\\s+ago$",
       "flags": "i",
       "replacement": "创建于 $1$2 前"
     },
     {
-      "keywords": ["thought"],
+      "keywords": [
+        "thought"
+      ],
       "pattern": "^Thought\\s+for\\s+(\\d+(?:\\.\\d+)?)\\s*s(?:ec(?:ond)?s?)?$",
       "flags": "i",
       "replacement": "已思考 $1 秒"
     },
     {
-      "keywords": ["thought"],
+      "keywords": [
+        "thought"
+      ],
       "pattern": "^Thought\\s+for\\s+(\\d+)\\s*m(?:in)?\\s+(\\d+)\\s*s$",
       "flags": "i",
       "replacement": "已思考 $1 分 $2 秒"
     },
     {
-      "keywords": ["thought"],
+      "keywords": [
+        "thought"
+      ],
       "pattern": "^Thought\\s+for\\s+less\\s+than\\s+a\\s+second$",
       "flags": "i",
       "replacement": "已思考不到 1 秒"
     },
     {
-      "keywords": ["ran", "completed"],
+      "keywords": [
+        "ran",
+        "completed"
+      ],
       "pattern": "^(?:Ran|Completed)\\s+in\\s+(\\d+(?:\\.\\d+)?)\\s*s(?:ec(?:ond)?s?)?$",
       "flags": "i",
       "replacement": "耗时 $1 秒完成"
     },
     {
-      "keywords": ["ran", "completed"],
+      "keywords": [
+        "ran",
+        "completed"
+      ],
       "pattern": "^(?:Ran|Completed)\\s+in\\s+(\\d+)\\s*ms$",
       "flags": "i",
       "replacement": "耗时 $1 毫秒完成"
     },
     {
-      "keywords": ["context"],
+      "keywords": [
+        "context"
+      ],
       "pattern": "^(\\d+)%\\s+context\\s+used$",
       "flags": "i",
       "replacement": "上下文已使用 $1%"
     },
     {
-      "keywords": ["search"],
+      "keywords": [
+        "search"
+      ],
       "pattern": "^Search\\s+in\\s+(.+?)(?:\\.{1,3}|…)?$",
       "flags": "i",
       "replacement": "在 $1 中搜索..."
     },
     {
-      "keywords": ["setting", "wsl"],
+      "keywords": [
+        "setting",
+        "wsl"
+      ],
       "pattern": "^Setting\\s+up\\s+WSL:\\s*(.+)$",
       "flags": "i",
       "replacement": "正在配置 WSL：$1"
     },
     {
-      "keywords": ["connected"],
+      "keywords": [
+        "connected"
+      ],
       "pattern": "^Connected\\s+to\\s+(.+)$",
       "flags": "i",
       "replacement": "已连接到 $1"
     },
     {
-      "keywords": ["connecting"],
+      "keywords": [
+        "connecting"
+      ],
       "pattern": "^Connecting\\s+to\\s+(.+?)(?:\\.{1,3}|…)?$",
       "flags": "i",
       "replacement": "正在连接到 $1..."
     },
     {
-      "keywords": ["version"],
+      "keywords": [
+        "version"
+      ],
       "pattern": "^Version\\s+(v?\\d+\\.\\d+(?:\\.\\d+)?.*)$",
       "flags": "i",
       "replacement": "版本 $1"
     },
     {
-      "keywords": ["turn"],
+      "keywords": [
+        "turn"
+      ],
       "pattern": "^Turn\\s+(\\d+)\\s+of\\s+(\\d+)$",
       "flags": "i",
       "replacement": "第 $1 / $2 轮对话"
     },
     {
-      "keywords": ["worked"],
+      "keywords": [
+        "worked"
+      ],
       "pattern": "^Worked\\s+for\\s+(\\d+)m$",
       "flags": "i",
       "replacement": "已持续工作 $1 分钟"
     },
     {
-      "keywords": ["worked"],
+      "keywords": [
+        "worked"
+      ],
       "pattern": "^Worked\\s+for\\s+(\\d+)s$",
       "flags": "i",
       "replacement": "已持续工作 $1 秒"
     },
     {
-      "keywords": ["worked"],
+      "keywords": [
+        "worked"
+      ],
       "pattern": "^Worked\\s+for\\s+(\\d+)h\\s+(\\d+)m$",
       "flags": "i",
       "replacement": "已持续工作 $1 小时 $2 分钟"
     },
     {
-      "keywords": ["worked"],
+      "keywords": [
+        "worked"
+      ],
       "pattern": "^Worked\\s+for\\s+(\\d+)h$",
       "flags": "i",
       "replacement": "已持续工作 $1 小时"
     },
     {
-      "keywords": ["load", "messages"],
+      "keywords": [
+        "load",
+        "messages"
+      ],
       "pattern": "^Load\\s+older\\s+messages,\\s+showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
       "flags": "i",
       "replacement": "加载更早的消息（当前显示 $1 / $2 条）"
     },
     {
-      "keywords": ["lines", "added"],
+      "keywords": [
+        "lines",
+        "added"
+      ],
       "pattern": "^(\\d+)\\s+lines?\\s+added,\\s+(\\d+)\\s+lines?\\s+removed$",
       "flags": "i",
       "replacement": "新增 $1 行，删除 $2 行"
     },
     {
-      "keywords": ["select", "model"],
+      "keywords": [
+        "select",
+        "model"
+      ],
       "pattern": "^Select\\s+model,\\s+current:\\s*(.+)$",
       "flags": "i",
       "replacement": "选择模型（当前：$1）"
     },
     {
-      "keywords": ["permissions", "preset"],
+      "keywords": [
+        "permissions",
+        "preset"
+      ],
       "pattern": "^Agent\\s+permissions\\s+preset\\s+selector,\\s+current:\\s*(.+)$",
       "flags": "i",
       "replacement": "智能体权限预设（当前：$1）"
     },
     {
-      "keywords": ["select", "project"],
+      "keywords": [
+        "select",
+        "project"
+      ],
       "pattern": "^Select\\s+project,\\s+current:\\s*(.+)$",
       "flags": "i",
       "replacement": "选择项目（当前：$1）"
     },
     {
-      "keywords": ["branch"],
+      "keywords": [
+        "branch"
+      ],
       "pattern": "^Branch,\\s+current:\\s*(.+)$",
       "flags": "i",
       "replacement": "Git 分支（当前：$1）"
     },
     {
-      "keywords": ["plan"],
+      "keywords": [
+        "plan"
+      ],
       "pattern": "^Your\\s+Plan:\\s*(.+)$",
       "flags": "i",
       "replacement": "当前方案：$1"
     },
     {
-      "keywords": ["fold"],
+      "keywords": [
+        "fold"
+      ],
       "pattern": "^Fold\\s+lines\\s+(\\d+)-(\\d+)$",
       "flags": "i",
       "replacement": "折叠第 $1-$2 行"
     },
     {
-      "keywords": ["breakdowns"],
+      "keywords": [
+        "breakdowns"
+      ],
       "pattern": "^Show\\s+(\\d+)\\s+breakdowns?$",
       "flags": "i",
       "replacement": "展开 $1 项明细"
     },
     {
-      "keywords": ["skills", "tokens"],
+      "keywords": [
+        "skills",
+        "tokens"
+      ],
       "pattern": "^Skills:\\s*(\\d+)\\s+tokens?$",
       "flags": "i",
       "replacement": "技能占用：$1 Tokens"
     },
     {
-      "keywords": ["feedback"],
+      "keywords": [
+        "feedback"
+      ],
       "pattern": "^Send\\s+feedback\\s+as\\s+(.+@.+)$",
       "flags": "i",
       "replacement": "以 $1 身份发送反馈"
     },
     {
-      "keywords": ["shortcut"],
+      "keywords": [
+        "shortcut"
+      ],
       "pattern": "^Remove\\s+shortcut\\s+(.+)\\s+for\\s+(.+)$",
       "flags": "",
       "replacement": "移除快捷键 $1（$2）"
     },
     {
-      "keywords": ["shortcut"],
+      "keywords": [
+        "shortcut"
+      ],
       "pattern": "^Shortcut\\s+(.+)\\s+for\\s+(.+)$",
       "flags": "",
       "replacement": "快捷键 $1（$2）"
     },
     {
-      "keywords": ["shortcut"],
+      "keywords": [
+        "shortcut"
+      ],
       "pattern": "^Add\\s+shortcut\\s+for\\s+(.+)$",
       "flags": "",
       "replacement": "为「$1」添加快捷键"
     },
     {
-      "keywords": ["m"],
+      "keywords": [
+        "m"
+      ],
       "pattern": "^(\\d+)m$",
       "flags": "",
       "replacement": "$1分钟"
     },
     {
-      "keywords": ["h"],
+      "keywords": [
+        "h"
+      ],
       "pattern": "^(\\d+)h$",
       "flags": "",
       "replacement": "$1小时"
     },
     {
-      "keywords": ["d"],
+      "keywords": [
+        "d"
+      ],
       "pattern": "^(\\d+)d$",
       "flags": "",
       "replacement": "$1天"
     },
     {
-      "keywords": ["older", "messages"],
+      "keywords": [
+        "older",
+        "messages"
+      ],
       "pattern": "^No\\s+more\\s+older\\s+messages,\\s+showing\\s+(\\d+)\\s+of\\s+(\\d+)$",
       "flags": "i",
       "replacement": "没有更早的消息了（当前显示全部 $1 / $2 条）"
     },
     {
-      "keywords": ["resets"],
+      "keywords": [
+        "resets"
+      ],
       "pattern": "^Resets\\s+in\\s+(\\d+)d\\s+(\\d+)h$",
       "flags": "i",
       "replacement": "将在 $1 天 $2 小时后重置"
     },
     {
-      "keywords": ["resets"],
+      "keywords": [
+        "resets"
+      ],
       "pattern": "^Resets\\s+in\\s+(\\d+)h\\s+(\\d+)m$",
       "flags": "i",
       "replacement": "将在 $1 小时 $2 分钟后重置"
     },
     {
-      "keywords": ["resets"],
+      "keywords": [
+        "resets"
+      ],
       "pattern": "^Resets\\s+in\\s+(\\d+)m$",
       "flags": "i",
       "replacement": "将在 $1 分钟后重置"
     },
     {
-      "keywords": ["weekly", "limit", "refresh"],
+      "keywords": [
+        "weekly",
+        "limit",
+        "refresh"
+      ],
       "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+days?,\\s+(\\d+)\\s+hours?\\.$",
       "flags": "i",
       "replacement": "你已使用部分每周限额，将于 $1 天 $2 小时后完全重置。"
     },
     {
-      "keywords": ["limit", "refresh", "minutes"],
+      "keywords": [
+        "limit",
+        "refresh",
+        "minutes"
+      ],
       "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+5-hour\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.$",
       "flags": "i",
       "replacement": "你已使用部分 5 小时限额，将于 $1 小时 $2 分钟后完全重置。"
     },
     {
-      "keywords": ["weekly", "limit"],
+      "keywords": [
+        "weekly",
+        "limit"
+      ],
       "pattern": "^(.+)\\s+Weekly\\s+Limit$",
       "flags": "",
       "replacement": "$1 每周限额"
     },
     {
-      "keywords": ["hour", "limit"],
+      "keywords": [
+        "hour",
+        "limit"
+      ],
       "pattern": "^(.+)\\s+5-[Hh]our\\s+Limit$",
       "flags": "",
       "replacement": "$1 5 小时限额"
     },
     {
-      "keywords": ["chrome", "extensions", "manifest"],
+      "keywords": [
+        "chrome",
+        "extensions",
+        "manifest"
+      ],
       "pattern": "^Build\\s+and\\s+publish\\s+Chrome\\s+Extensions\\s+using\\s+Manifest\\s+V3[\\s\\S]*$",
       "flags": "",
       "replacement": "使用 Manifest V3 最佳实践开发、调试并发布 Chrome 浏览器扩展程序。"
     },
     {
-      "keywords": ["modern", "web", "development"],
+      "keywords": [
+        "modern",
+        "web",
+        "development"
+      ],
       "pattern": "^Search\\s+tool\\s+for\\s+modern\\s+web\\s+development\\s+best\\s+practices[\\s\\S]*$",
       "flags": "",
       "replacement": "现代前端与 Web 开发最佳实践检索工具（HTML/CSS、表单、弹窗、无障碍与性能优化）。"
     },
     {
-      "keywords": ["plugins", "namespaced"],
+      "keywords": [
+        "plugins",
+        "namespaced"
+      ],
       "pattern": "^How\\s+to\\s+manage\\s+and\\s+create\\s+plugins\\s+—\\s+namespaced\\s+bundles[\\s\\S]*$",
       "flags": "",
       "replacement": "管理与创建 Antigravity 插件：将技能、智能体、规则、MCP 与钩子打包为独立插件（支持 /plugin 指令）。"
     },
     {
-      "keywords": ["workflow", "script", "orchestrates"],
+      "keywords": [
+        "workflow",
+        "script",
+        "orchestrates"
+      ],
       "pattern": "^How\\s+to\\s+write\\s+and\\s+run\\s+a\\s+dynamic\\s+workflow\\s+script[\\s\\S]*$",
       "flags": "",
       "replacement": "使用 run_workflow 编写并运行多智能体编排 Python 工作流脚本（并行、流水线与结果聚合）。"
     },
     {
-      "keywords": ["comprehensive", "antigravity", "sitemap"],
+      "keywords": [
+        "comprehensive",
+        "antigravity",
+        "sitemap"
+      ],
       "pattern": "^Provides\\s+a\\s+comprehensive\\s+guide,\\s+quick\\s+reference,\\s+and\\s+sitemap\\s+for\\s+Google\\s+Antigravity[\\s\\S]*$",
       "flags": "",
       "replacement": "Google Antigravity 完整使用指南与速查手册（涵盖 CLI、IDE、斜杠指令、快捷键与各类自定义配置）。"
     },
     {
-      "keywords": ["interactive", "scheduled", "automation"],
+      "keywords": [
+        "interactive",
+        "scheduled",
+        "automation"
+      ],
       "pattern": "^Interactive\\s+guide\\s+to\\s+design\\s+and\\s+create\\s+a\\s+scheduled\\s+background\\s+automation[\\s\\S]*$",
       "flags": "",
       "replacement": "交互式定时后台自动化创建指南：设计与配置周期性自动执行任务（支持 /automation 指令）。"
     },
     {
-      "keywords": ["interactive", "widgets", "artifacts"],
+      "keywords": [
+        "interactive",
+        "widgets",
+        "artifacts"
+      ],
       "pattern": "^How\\s+to\\s+render\\s+rich\\s+interactive\\s+HTML\\s+widgets[\\s\\S]*$",
       "flags": "",
       "replacement": "在对话内或独立产物中渲染交互式 HTML 组件、图表、数据可视化与动态教学演示。"
     },
     {
-      "keywords": ["comprehensive", "customization", "system"],
+      "keywords": [
+        "comprehensive",
+        "customization",
+        "system"
+      ],
       "pattern": "^Comprehensive\\s+guide\\s+and\\s+reference\\s+for\\s+the\\s+Antigravity\\s+Customization\\s+System[\\s\\S]*$",
       "flags": "",
       "replacement": "Antigravity 自定义系统完整指南：详解技能、规则、插件、钩子与 MCP 服务器的加载机制与创建方法。"
     },
     {
-      "keywords": ["migrates", "servers", "skills"],
+      "keywords": [
+        "migrates",
+        "servers",
+        "skills"
+      ],
       "pattern": "^Migrates\\s+the\\s+user's\\s+MCP\\s+servers,\\s+skills[\\s\\S]*$",
       "flags": "",
       "replacement": "将 Claude Code、Cursor、Codex、Gemini CLI 等工具中的 MCP、技能、指令与配置一键迁移到 Antigravity。"
     },
     {
-      "keywords": ["automatically", "migrate", "workflows"],
+      "keywords": [
+        "automatically",
+        "migrate",
+        "workflows"
+      ],
       "pattern": "^Automatically\\s+migrate\\s+legacy\\s+workflows\\s+to\\s+modern\\s+skills[\\s\\S]*$",
       "flags": "",
       "replacement": "自动将旧版工作流迁移为新版技能（SKILL.md），并安全归档旧工作流文件。"
     },
     {
-      "keywords": ["preview", "quota", "swarm"],
+      "keywords": [
+        "preview",
+        "quota",
+        "swarm"
+      ],
       "pattern": "^\\(Preview\\s*&\\s*Quota\\s+Heavy\\)\\s+Run\\s+a\\s+swarm:[\\s\\S]*$",
       "flags": "",
       "replacement": "（预览/高额度消耗）启动智能体集群：多个智能体并行协作并共享留言板，共同攻克可拆分的复杂任务。"
     },
     {
-      "keywords": ["native", "swarm", "monitor"],
+      "keywords": [
+        "native",
+        "swarm",
+        "monitor"
+      ],
       "pattern": "^ONLY\\s+for\\s+the\\s+native-swarm\\s+worker\\s+whose\\s+brief\\s+says\\s+it\\s+is\\s+the\\s+monitor[\\s\\S]*$",
       "flags": "",
       "replacement": "（仅限智能体集群监控节点使用）定时检查集群是否停滞，并唤醒可解除阻塞的成员。"
     },
     {
-      "keywords": ["discover", "plugin", "panels"],
+      "keywords": [
+        "discover",
+        "plugin",
+        "panels"
+      ],
       "pattern": "^Discover\\s+UI\\s+plugin\\s+panels\\s+relevant\\s+to\\s+the\\s+current\\s+task[\\s\\S]*$",
       "flags": "",
       "replacement": "发现与当前任务相关的 UI 插件面板，并在对话中提供一键打开侧边面板的快捷入口。"
     },
     {
-      "keywords": ["line", "lines", "selected"],
+      "keywords": [
+        "line",
+        "lines",
+        "selected"
+      ],
       "pattern": "^(\\d+)\\s+lines?\\s+selected$",
       "flags": "i",
       "replacement": "已选中 $1 行"
     },
     {
-      "keywords": ["character", "characters", "selected"],
+      "keywords": [
+        "character",
+        "characters",
+        "selected"
+      ],
       "pattern": "^(\\d+)\\s+characters?\\s+selected$",
       "flags": "i",
       "replacement": "已选中 $1 个字符"
     },
     {
-      "keywords": ["copied", "line", "lines"],
+      "keywords": [
+        "copied",
+        "line",
+        "lines"
+      ],
       "pattern": "^Copied\\s+(\\d+)\\s+lines?$",
       "flags": "i",
       "replacement": "已复制 $1 行"
     },
     {
-      "keywords": ["quote", "line", "lines"],
+      "keywords": [
+        "quote",
+        "line",
+        "lines"
+      ],
       "pattern": "^Quote\\s+lines?\\s+(\\d+(?:-\\d+)?)$",
       "flags": "i",
       "replacement": "引用第 $1 行"
     },
     {
-      "keywords": ["comment", "line", "lines"],
+      "keywords": [
+        "comment",
+        "line",
+        "lines"
+      ],
       "pattern": "^Comment\\s+on\\s+lines?\\s+(\\d+(?:-\\d+)?)$",
       "flags": "i",
       "replacement": "对第 $1 行添加批注"
+    },
+    {
+      "keywords": [
+        "voice"
+      ],
+      "pattern": "^(Fola|Arlo|Cleo|Finn|Gero|Lora|Neno|Olin|Tari),\\s+voice\\s+(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "声线 $1（第 $2 / $3 个）"
+    },
+    {
+      "keywords": [
+        "show",
+        "more"
+      ],
+      "pattern": "^Show\\s+(\\d+)\\s+More$",
+      "flags": "i",
+      "replacement": "再显示 $1 项"
+    },
+    {
+      "keywords": [
+        "leaving"
+      ],
+      "pattern": "^Leaving\\s+on\\s+(.+?)\\.?$",
+      "flags": "i",
+      "replacement": "将于 $1 下线"
+    },
+    {
+      "keywords": [
+        "leaving"
+      ],
+      "pattern": "^(.+)\\.\\s+Leaving\\s+on\\s+(.+?)\\.?$",
+      "flags": "",
+      "replacement": "$1（将于 $2 下线）。"
+    },
+    {
+      "keywords": [
+        "controls",
+        "terminal",
+        "approval"
+      ],
+      "pattern": "^Controls\\s+whether\\s+terminal\\s+commands\\s+require\\s+your\\s+approval\\s+before\\s+running\\.[\\s\\S]*$",
+      "flags": "",
+      "replacement": "控制运行终端命令前是否需要人工批准。注意：修改仅对之后新发送的消息生效，正在执行中的回复仍沿用旧设置。"
+    },
+    {
+      "keywords": [
+        "open",
+        "urls",
+        "browser",
+        "malicious"
+      ],
+      "pattern": "^Let\\s+the\\s+agent\\s+open\\s+URLs,\\s+read\\s+web\\s+pages,\\s+and\\s+interact\\s+with\\s+browser\\s+content\\.[\\s\\S]*$",
+      "flags": "",
+      "replacement": "允许智能体打开网址、读取网页并与浏览器内容交互（注意：启用浏览器交互会增加接触外部恶意网页的安全风险）。"
+    },
+    {
+      "keywords": [
+        "inherits",
+        "global",
+        "permissions"
+      ],
+      "pattern": "^Inherits\\s+your\\s+Global\\s+Permissions\\s+when\\s+working\\s+(.+)\\.$",
+      "flags": "i",
+      "replacement": "在 $1 工作时继承你的全局权限设置。"
+    },
+    {
+      "keywords": [
+        "conversations",
+        "updating",
+        "interrupt"
+      ],
+      "pattern": "^You\\s+have\\s+(\\d+)\\s+conversations\\s+in\\s+progress\\.\\s+Updating\\s+will\\s+interrupt\\s+them,\\s+and\\s+they\\s+will\\s+automatically\\s+resume\\s+once\\s+the\\s+update\\s+completes\\.$",
+      "flags": "",
+      "replacement": "当前有 $1 个对话正在进行中。更新将暂时中断这些对话，更新完成后会自动恢复继续执行。"
+    },
+    {
+      "keywords": [
+        "conversations",
+        "updating",
+        "cancel"
+      ],
+      "pattern": "^You\\s+have\\s+(\\d+)\\s+conversations\\s+in\\s+progress\\.\\s+Updating\\s+will\\s+cancel\\s+them\\s+and\\s+you'll\\s+need\\s+to\\s+manually\\s+restart\\s+them\\.$",
+      "flags": "",
+      "replacement": "当前有 $1 个对话正在进行中。更新将取消这些对话，之后你需要手动重新发起。"
+    },
+    {
+      "keywords": [
+        "resets"
+      ],
+      "pattern": "^Resets\\s+in\\s+(\\d+)d$",
+      "flags": "i",
+      "replacement": "将在 $1 天后重置"
+    },
+    {
+      "keywords": [
+        "resets"
+      ],
+      "pattern": "^Resets\\s+in\\s+(\\d+)h$",
+      "flags": "i",
+      "replacement": "将在 $1 小时后重置"
+    },
+    {
+      "keywords": [
+        "available",
+        "credits"
+      ],
+      "pattern": "^Available\\s+AI\\s+credits:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "可用 AI 积分：$1"
+    },
+    {
+      "keywords": [
+        "credits",
+        "quota",
+        "fulfill"
+      ],
+      "pattern": "^When\\s+toggled\\s+on,\\s+(.+?)\\s+will\\s+use\\s+your\\s+AI\\s+credits\\s+to\\s+fulfill\\s+model\\s+requests\\s+once\\s+you're\\s+out\\s+of\\s+model\\s+quota\\.\\s+\\1\\s+will\\s+always\\s+use\\s+your\\s+model\\s+quota\\s+first\\s+before\\s+using\\s+AI\\s+credits\\.$",
+      "flags": "",
+      "replacement": "开启后，当你的模型配额用尽时，$1 将使用 AI 积分继续处理模型请求。系统会始终优先消耗模型配额，再使用 AI 积分。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+days?,\\s+(\\d+)\\s+hours?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 天 $2 小时后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 小时 $2 分钟后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+days?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 天后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 小时后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+minutes?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 分钟后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(?:less\\s+than\\s+a\\s+minute|<\\s*1\\s*m(?:inute)?)\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于不到 1 分钟内重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(.+?)\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+days?,\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 天 $2 小时后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 小时 $2 分钟后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+days?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 天后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 小时后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 分钟后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(.+?)\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，将于 $1 后重置。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 小时 $2 分钟后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 小时后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+minutes?\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 分钟后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(.+?)\\.\\s+If\\s+on\\s+a\\s+supported\\s+paid\\s+plan,\\s+you\\s+can\\s+use\\s+AI\\s+credits\\s+in\\s+the\\s+interim\\s+or\\s+upgrade\\s+to\\s+a\\s+higher\\s+tier\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 后重置。如使用受支持的付费方案，期间可使用 AI 积分继续调用，或升级至更高档位。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 小时 $2 分钟后重置。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 小时后重置。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 分钟后重置。"
+    },
+    {
+      "keywords": [
+        "hour",
+        "limit",
+        "refreshes"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+5-hour\\s+limit,\\s+it\\s+refreshes\\s+in\\s+(.+?)\\.$",
+      "flags": "i",
+      "replacement": "你已达到 5 小时限额，将于 $1 后重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+days?,\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 天 $2 小时后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?,\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 小时 $2 分钟后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+days?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 天后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 小时后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 分钟后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(?:less\\s+than\\s+a\\s+minute|<\\s*1\\s*m(?:inute)?)\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于不到 1 分钟内完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "currently",
+        "apply"
+      ],
+      "pattern": "^You\\s+have\\s+hit\\s+your\\s+weekly\\s+limit,\\s+the\\s+5-hour\\s+limit\\s+does\\s+not\\s+currently\\s+apply\\.\\s+Your\\s+weekly\\s+limit\\s+will\\s+fully\\s+refresh\\s+in\\s+(.+?)\\.$",
+      "flags": "i",
+      "replacement": "你已达到每周限额，当前不适用 5 小时限额。你的每周限额将于 $1 后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refresh"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+days?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分每周限额，将于 $1 天后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refresh"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分每周限额，将于 $1 小时后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refresh"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分每周限额，将于 $1 分钟后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "limit",
+        "refresh"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+weekly\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(.+?)\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分每周限额，将于 $1 后完全重置。"
+    },
+    {
+      "keywords": [
+        "limit",
+        "refresh",
+        "minutes"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+5-hour\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+hours?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分 5 小时限额，将于 $1 小时后完全重置。"
+    },
+    {
+      "keywords": [
+        "limit",
+        "refresh",
+        "minutes"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+5-hour\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(\\d+)\\s+minutes?\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分 5 小时限额，将于 $1 分钟后完全重置。"
+    },
+    {
+      "keywords": [
+        "limit",
+        "refresh",
+        "5"
+      ],
+      "pattern": "^You\\s+have\\s+used\\s+some\\s+of\\s+your\\s+5-hour\\s+limit,\\s+it\\s+will\\s+fully\\s+refresh\\s+in\\s+(.+?)\\.$",
+      "flags": "i",
+      "replacement": "你已使用部分 5 小时限额，将于 $1 后完全重置。"
+    },
+    {
+      "keywords": [
+        "weekly",
+        "unused",
+        "limit"
+      ],
+      "pattern": "^You\\s+have\\s+not\\s+used\\s+any\\s+of\\s+your\\s+weekly\\s+limit\\.?$",
+      "flags": "i",
+      "replacement": "你尚未使用任何每周限额。"
+    },
+    {
+      "keywords": [
+        "limit",
+        "used"
+      ],
+      "pattern": "^You\\s+have\\s+not\\s+used\\s+any\\s+of\\s+your\\s+5-hour\\s+limit\\.?$",
+      "flags": "i",
+      "replacement": "你尚未使用任何 5 小时限额。"
+    },
+    {
+      "keywords": [
+        "credits",
+        "quota",
+        "overages"
+      ],
+      "pattern": "^You\\s+need\\s+at\\s+least\\s+(\\d+)\\s+AI\\s+Credits\\s+to\\s+send\\s+messages\\.\\s+To\\s+continue\\s+using\\s+(.+?)\\s+now,\\s+purchase\\s+more\\s+AI\\s+Credits\\.\\s+Your\\s+plan's\\s+baseline\\s+quota\\s+will\\s+refresh\\s+on\\s+(.+?)\\.$",
+      "flags": "",
+      "replacement": "需要至少 $1 AI 积分才能发送消息。若需立即继续使用 $2，请购买更多 AI 积分；你的方案基础配额将于 $3 重置。"
+    },
+    {
+      "keywords": [
+        "credits",
+        "quota"
+      ],
+      "pattern": "^You\\s+need\\s+more\\s+AI\\s+Credits\\s+to\\s+send\\s+messages\\.\\s+To\\s+continue\\s+using\\s+(.+?)\\s+now,\\s+purchase\\s+more\\s+AI\\s+Credits\\.\\s+Your\\s+plan's\\s+baseline\\s+quota\\s+will\\s+refresh\\s+on\\s+(.+?)\\.$",
+      "flags": "",
+      "replacement": "需要更多 AI 积分才能发送消息。若需立即继续使用 $1，请购买更多 AI 积分；你的方案基础配额将于 $2 重置。"
+    },
+    {
+      "keywords": [
+        "credits",
+        "purchase"
+      ],
+      "pattern": "^You\\s+need\\s+at\\s+least\\s+(\\d+)\\s+AI\\s+Credits\\s+to\\s+send\\s+messages\\.\\s+To\\s+continue\\s+using\\s+(.+?)\\s+now,\\s+purchase\\s+more\\s+AI\\s+Credits\\.$",
+      "flags": "",
+      "replacement": "需要至少 $1 AI 积分才能发送消息。若需立即继续使用 $2，请购买更多 AI 积分。"
+    },
+    {
+      "keywords": [
+        "credits",
+        "purchase"
+      ],
+      "pattern": "^You\\s+need\\s+more\\s+AI\\s+Credits\\s+to\\s+send\\s+messages\\.\\s+To\\s+continue\\s+using\\s+(.+?)\\s+now,\\s+purchase\\s+more\\s+AI\\s+Credits\\.$",
+      "flags": "",
+      "replacement": "需要更多 AI 积分才能发送消息。若需立即继续使用 $1，请购买更多 AI 积分。"
+    },
+    {
+      "keywords": [
+        "baseline",
+        "quota",
+        "overages"
+      ],
+      "pattern": "^Your\\s+plan's\\s+baseline\\s+quota\\s+will\\s+refresh\\s+on\\s+(.+?)\\.\\s+To\\s+continue\\s+using\\s+this\\s+model\\s+now,\\s+enable\\s+AI\\s+Credit\\s+overages\\.$",
+      "flags": "",
+      "replacement": "你的方案基础配额将于 $1 重置。若需立即继续使用此模型，请开启 AI 积分超额计费。"
+    },
+    {
+      "keywords": [
+        "baseline",
+        "quota"
+      ],
+      "pattern": "^Your\\s+plan's\\s+baseline\\s+quota\\s+will\\s+refresh\\s+on\\s+(.+?)\\.$",
+      "flags": "",
+      "replacement": "你的方案基础配额将于 $1 重置。"
+    },
+    {
+      "keywords": [
+        "quota",
+        "reset",
+        "switch"
+      ],
+      "pattern": "^Your\\s+quota\\s+for\\s+(.+?)\\s+will\\s+reset\\s+on\\s+(.+?)\\.\\s+Switch\\s+to\\s+another\\s+available\\s+model\\s+to\\s+continue\\.$",
+      "flags": "",
+      "replacement": "你的 $1 配额将于 $2 重置，请切换至其他可用模型继续对话。"
+    },
+    {
+      "keywords": [
+        "quota",
+        "reached",
+        "switch"
+      ],
+      "pattern": "^Your\\s+quota\\s+for\\s+(.+?)\\s+has\\s+been\\s+reached\\.\\s+Switch\\s+to\\s+another\\s+available\\s+model\\s+to\\s+continue\\.$",
+      "flags": "",
+      "replacement": "你的 $1 配额已用尽，请切换至其他可用模型继续对话。"
+    },
+    {
+      "keywords": [
+        "quota",
+        "shared"
+      ],
+      "pattern": "^Quota\\s+is\\s+shared\\s+across\\s+(.+?)\\.?$",
+      "flags": "i",
+      "replacement": "配额在 $1 之间共享。"
+    },
+    {
+      "keywords": [
+        "models",
+        "share",
+        "quota"
+      ],
+      "pattern": "^Models\\s+in\\s+this\\s+group\\s+share\\s+(.+?)\\.?$",
+      "flags": "i",
+      "replacement": "该分组内的模型共享 $1。"
+    },
+    {
+      "keywords": [
+        "shared",
+        "quota"
+      ],
+      "pattern": "^Shared\\s+quota\\s+for\\s+(.+?)\\.?$",
+      "flags": "i",
+      "replacement": "$1 共享配额池。"
+    },
+    {
+      "keywords": [
+        "includes"
+      ],
+      "pattern": "^Includes\\s+(.+?)\\.?$",
+      "flags": "i",
+      "replacement": "包含模型：$1。"
+    },
+    {
+      "keywords": [
+        "automation",
+        "created"
+      ],
+      "pattern": "^This\\s+project\\s+was\\s+created\\s+for\\s+the\\s+(.+?)\\s+automation\\.$",
+      "flags": "",
+      "replacement": "此项目由自动化任务“$1”创建。"
+    },
+    {
+      "keywords": [
+        "cookie",
+        "cookies"
+      ],
+      "pattern": "^(\\d+)\\s+cookies?$",
+      "flags": "i",
+      "replacement": "$1 个 Cookie"
+    },
+    {
+      "keywords": [
+        "delete",
+        "cookies"
+      ],
+      "pattern": "^Delete\\s+cookies\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "删除 $1 的 Cookie"
+    },
+    {
+      "keywords": [
+        "sites",
+        "match"
+      ],
+      "pattern": "^No\\s+sites\\s+match\\s+“(.+)”\\.$",
+      "flags": "",
+      "replacement": "没有匹配“$1”的站点。"
+    },
+    {
+      "keywords": [
+        "delete",
+        "cookies",
+        "again"
+      ],
+      "pattern": "^Couldn't\\s+delete\\s+cookies\\s+for\\s+(.+)\\.\\s+Try\\s+again\\.$",
+      "flags": "",
+      "replacement": "无法删除 $1 的 Cookie，请重试。"
+    },
+    {
+      "keywords": [
+        "access",
+        "clone",
+        "github"
+      ],
+      "pattern": "^Access\\s+and\\s+clone\\s+GitHub\\s+repositories\\b[\\s\\S]*$",
+      "flags": "",
+      "replacement": "在远程环境中访问并克隆 GitHub 代码仓库。"
+    },
+    {
+      "keywords": [
+        "manage",
+        "conversations",
+        "programmatically"
+      ],
+      "pattern": "^Manage\\s+local\\s+Antigravity\\s+conversations\\s+programmatically\\s+over\\s+HTTP\\+JSON:[\\s\\S]*$",
+      "flags": "",
+      "replacement": "通过 HTTP+JSON 编程管理本地 Antigravity 对话：创建、列出、读取状态、重命名、置顶、收藏、归档与删除对话。"
+    },
+    {
+      "keywords": [
+        "build",
+        "package",
+        "mcp",
+        "apps"
+      ],
+      "pattern": "^Build,\\s+package,\\s+and\\s+debug\\s+MCP\\s+Apps\\s+for\\s+Antigravity:[\\s\\S]*$",
+      "flags": "",
+      "replacement": "构建、打包与调试 Antigravity 的 MCP 应用：让 MCP 工具结果在对话内、侧边面板或全页中以交互式界面呈现。"
+    },
+    {
+      "keywords": [
+        "guidelines",
+        "interacting",
+        "github"
+      ],
+      "pattern": "^Guidelines\\s+for\\s+interacting\\s+with\\s+GitHub\\s+and\\s+request\\s+permissions\\s+from\\s+the\\s+user[\\s\\S]*$",
+      "flags": "",
+      "replacement": "GitHub 交互权限规范：当命令因环境限制失败时，按规范向用户申请授权。"
+    },
+    {
+      "keywords": [
+        "coordinator",
+        "swarm",
+        "session"
+      ],
+      "pattern": "^ONLY\\s+for\\s+the\\s+coordinator\\s+of\\s+an\\s+active\\s+/swarm\\s+session\\.[\\s\\S]*$",
+      "flags": "",
+      "replacement": "（仅限 /swarm 协调者使用）维护智能体集群概览面板的目标、分组进度与截图时间线。"
+    },
+    {
+      "keywords": [
+        "narrator",
+        "native-swarm",
+        "swarm"
+      ],
+      "pattern": "^ONLY\\s+for\\s+the\\s+native-swarm\\s+worker\\s+whose\\s+brief\\s+says\\s+it\\s+is\\s+the\\s+narrator\\.[\\s\\S]*$",
+      "flags": "",
+      "replacement": "（仅限智能体集群播报节点使用）汇总并播报集群协作进展与关键状态变化。"
+    },
+    {
+      "keywords": [
+        "cookie",
+        "devtools",
+        "debugging"
+      ],
+      "pattern": "^Uses\\s+Chrome\\s+DevTools\\s+MCP\\s+for\\s+inspecting,\\s+debugging,\\s+and\\s+testing\\s+cookies[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Chrome DevTools MCP 检查、调试与测试 Cookie、会话状态、身份认证及 Cookie 合规性（排查 401/403 与 SameSite 问题）。"
+    },
+    {
+      "keywords": [
+        "lcp",
+        "largest",
+        "contentful",
+        "paint"
+      ],
+      "pattern": "^Guides\\s+debugging\\s+and\\s+optimizing\\s+Largest\\s+Contentful\\s+Paint\\s+\\(LCP\\)[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Chrome DevTools MCP 排查并优化最大内容绘制（LCP）性能，诊断首屏加载缓慢并提升核心 Web 指标（CWV）。"
+    },
+    {
+      "keywords": [
+        "gemini",
+        "interactions",
+        "api"
+      ],
+      "pattern": "^Use\\s+this\\s+skill\\s+when\\s+writing\\s+code\\s+that\\s+calls\\s+the\\s+Gemini\\s+API[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Python 或 TypeScript 调用 Gemini API 的官方开发指南：涵盖对话、多模态、生图/生视频/TTS、流式响应、函数调用与新版迁移。"
+    },
+    {
+      "keywords": [
+        "gemini",
+        "live",
+        "streaming"
+      ],
+      "pattern": "^Use\\s+this\\s+skill\\s+when\\s+building\\s+real-time,\\s+bidirectional\\s+streaming\\s+applications\\s+with\\s+the\\s+Gemini\\s+Live\\s+API[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Gemini Live API 构建实时双向音视频/文本流式应用的指南：覆盖 WebSocket、语音活动检测（VAD）、异步函数调用、实时转录与翻译。"
+    },
+    {
+      "keywords": [
+        "gemini",
+        "omni",
+        "video"
+      ],
+      "pattern": "^Use\\s+this\\s+skill\\s+for\\s+generative\\s+video\\s+editing,\\s+text-to-video[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Gemini Omni 1.2 Flash 与 google-genai SDK 进行生成式视频编辑、文生视频、首尾帧过渡、视频续写及 ffmpeg 预处理的工作流指南。"
+    },
+    {
+      "keywords": [
+        "gmail",
+        "messages",
+        "drafts"
+      ],
+      "pattern": "^Read,\\s+search,\\s+send,\\s+and\\s+manage\\s+Gmail\\s+messages,[\\s\\S]*$",
+      "flags": "",
+      "replacement": "使用 Go CLI 读取、搜索、发送与管理 Gmail 邮件、草稿、标签及表情回应，支持下载附件与解析邮件网页链接。"
+    },
+    {
+      "keywords": [
+        "third",
+        "party",
+        "developer",
+        "tools"
+      ],
+      "pattern": "^Google\\s+does\\s+not\\s+control\\s+the\\s+availability\\s+or\\s+functionality\\s+of\\s+third\\s+party\\s+developer\\s+tools\\.[\\s\\S]*$",
+      "flags": "",
+      "replacement": "Google 不控制第三方开发者工具的可用性或功能。连接到你 Antigravity 实例的第三方工具数据可能会共享给 Google，Google 将依据《Google 隐私政策》予以保护。"
+    },
+    {
+      "keywords": [
+        "cannot",
+        "changed",
+        "agent",
+        "running"
+      ],
+      "pattern": "^(?:The\\s+)?model\\s+cannot\\s+be\\s+changed\\s+while\\s+the\\s+agent\\s+is\\s+running\\.?$",
+      "flags": "i",
+      "replacement": "智能体运行期间无法切换模型"
+    },
+    {
+      "keywords": [
+        "cannot",
+        "changed",
+        "agent",
+        "running"
+      ],
+      "pattern": "^(.+?)\\s+cannot\\s+be\\s+changed\\s+while\\s+the\\s+agent\\s+is\\s+running\\.?$",
+      "flags": "i",
+      "replacement": "智能体运行期间无法更改 $1"
+    },
+    {
+      "keywords": [
+        "install",
+        "folder",
+        "already"
+      ],
+      "pattern": "^Install\\s+folder\\s+\"(.+?)\"\\s+is\\s+already\\s+in\\s+use$",
+      "flags": "",
+      "replacement": "安装目录“$1”已被占用"
+    },
+    {
+      "keywords": [
+        "source",
+        "looser",
+        "review",
+        "installing"
+      ],
+      "pattern": "^This\\s+(?:plugin|skill)'s\\s+source\\s+is\\s+in\\s+(.+?),\\s+which\\s+can\\s+have\\s+looser\\s+review\\s+standards\\s+than\\s+standard\\s+Google\\s+code\\.\\s+Review\\s+its\\s+contents\\s+before\\s+installing\\.$",
+      "flags": "",
+      "replacement": "此扩展源码位于 $1，其审查标准可能宽松于标准 Google 代码，安装前请先审阅内容。"
+    },
+    {
+      "keywords": [
+        "failed",
+        "update",
+        "agent"
+      ],
+      "pattern": "^Failed\\s+to\\s+update\\s+agent:\\s*(.+)$",
+      "flags": "",
+      "replacement": "更新智能体失败：$1"
+    },
+    {
+      "keywords": [
+        "failed",
+        "remove",
+        "agent"
+      ],
+      "pattern": "^Failed\\s+to\\s+remove\\s+agent:\\s*(.+)$",
+      "flags": "",
+      "replacement": "移除智能体失败：$1"
+    },
+    {
+      "keywords": [
+        "failed",
+        "remove",
+        "plugin"
+      ],
+      "pattern": "^Failed\\s+to\\s+remove\\s+plugin:\\s*(.+)$",
+      "flags": "",
+      "replacement": "移除插件失败：$1"
+    },
+    {
+      "keywords": [
+        "failed",
+        "toggle",
+        "plugin"
+      ],
+      "pattern": "^Failed\\s+to\\s+toggle\\s+plugin:\\s*(.+)$",
+      "flags": "",
+      "replacement": "切换插件状态失败：$1"
+    },
+    {
+      "keywords": [
+        "models",
+        "within",
+        "group"
+      ],
+      "pattern": "^Models\\s+within\\s+this\\s+group:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "该分组包含的模型：$1"
+    },
+    {
+      "keywords": [
+        "configure"
+      ],
+      "pattern": "^Configure\\s+(.+)$",
+      "flags": "",
+      "replacement": "配置 $1"
+    },
+    {
+      "keywords": [
+        "mcp",
+        "server",
+        "requires",
+        "configuration"
+      ],
+      "pattern": "^The\\s+(.+?)\\s+MCP\\s+server\\s+requires\\s+configuration\\s+parameters\\s+before\\s+it\\s+can\\s+be\\s+started\\.$",
+      "flags": "",
+      "replacement": "启动 $1 MCP 服务器前需要先填写配置参数。"
+    },
+    {
+      "keywords": [
+        "fill",
+        "required",
+        "fields"
+      ],
+      "pattern": "^Please\\s+fill\\s+in\\s+all\\s+required\\s+fields:\\s*(.+)$",
+      "flags": "",
+      "replacement": "请填写所有必填字段：$1"
+    },
+    {
+      "keywords": [
+        "failed",
+        "save",
+        "configuration"
+      ],
+      "pattern": "^Failed\\s+to\\s+save\\s+configuration:\\s*(.+)$",
+      "flags": "",
+      "replacement": "保存配置失败：$1"
+    },
+    {
+      "keywords": [
+        "error",
+        "restarting"
+      ],
+      "pattern": "^Error\\s+restarting\\s+(.+?):\\s*(.+)$",
+      "flags": "",
+      "replacement": "重启 $1 失败：$2"
+    },
+    {
+      "keywords": [
+        "mcp",
+        "failed",
+        "start"
+      ],
+      "pattern": "^(\\d+)\\s+MCP\\s+servers?\\s+failed\\s+to\\s+start$",
+      "flags": "i",
+      "replacement": "$1 个 MCP 服务器启动失败"
+    },
+    {
+      "keywords": [
+        "tokens"
+      ],
+      "pattern": "^\\(([\\d,]+)\\s+tokens?\\)$",
+      "flags": "i",
+      "replacement": "（$1 Tokens）"
+    },
+    {
+      "keywords": [
+        "stream",
+        "control",
+        "pane"
+      ],
+      "pattern": "^Stream\\s+and\\s+control\\s+(.+?)\\s+directly\\s+in\\s+the\\s+side\\s+pane\\.$",
+      "flags": "",
+      "replacement": "直接在侧边面板中实时查看并控制 $1。"
+    },
+    {
+      "keywords": [
+        "agents",
+        "created"
+      ],
+      "pattern": "^Agents\\s+created\\s+by\\s*(.+)$",
+      "flags": "",
+      "replacement": "由 $1 创建的智能体"
+    },
+    {
+      "keywords": [
+        "finish",
+        "signing"
+      ],
+      "pattern": "^Finish\\s+signing\\s+in\\s+to\\s*(.+)$",
+      "flags": "",
+      "replacement": "完成登录至 $1"
+    },
+    {
+      "keywords": [
+        "switch",
+        "accounts"
+      ],
+      "pattern": "^Couldn't\\s+switch\\s+accounts:\\s*(.+)$",
+      "flags": "",
+      "replacement": "无法切换账号：$1"
+    },
+    {
+      "keywords": [
+        "signed",
+        "as"
+      ],
+      "pattern": "^Signed\\s+in\\s+as\\s+(.+)$",
+      "flags": "",
+      "replacement": "当前登录身份：$1"
+    },
+    {
+      "keywords": [
+        "domains"
+      ],
+      "pattern": "^Domains:\\s*(.+)$",
+      "flags": "",
+      "replacement": "目标域名：$1"
+    },
+    {
+      "keywords": [
+        "sign",
+        "failed"
+      ],
+      "pattern": "^Sign-in\\s+failed:\\s*(.+)$",
+      "flags": "",
+      "replacement": "登录失败：$1"
+    },
+    {
+      "keywords": [
+        "used",
+        "for"
+      ],
+      "pattern": "^Used\\s+for:\\s*(.+)$",
+      "flags": "",
+      "replacement": "用于：$1"
+    },
+    {
+      "keywords": [
+        "add",
+        "label"
+      ],
+      "pattern": "^Add\\s+label\\s+for\\s+(.+)$",
+      "flags": "",
+      "replacement": "为 $1 添加标签"
+    },
+    {
+      "keywords": [
+        "plugin"
+      ],
+      "pattern": "^Plugin:\\s*(.+)$",
+      "flags": "",
+      "replacement": "插件：$1"
+    },
+    {
+      "keywords": [
+        "setup",
+        "required"
+      ],
+      "pattern": "^(.+),\\s+setup\\s+required$",
+      "flags": "i",
+      "replacement": "$1（需要配置）"
+    },
+    {
+      "keywords": [
+        "more",
+        "actions"
+      ],
+      "pattern": "^More\\s+actions\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的更多操作"
+    },
+    {
+      "keywords": [
+        "added"
+      ],
+      "pattern": "^([A-Za-z0-9 _.+-]{2,60})\\s+added$",
+      "flags": "",
+      "replacement": "已添加 $1"
+    },
+    {
+      "keywords": [
+        "applied"
+      ],
+      "pattern": "^Applied\\s+(.+)$",
+      "flags": "",
+      "replacement": "已应用 $1"
+    },
+    {
+      "keywords": [
+        "apply"
+      ],
+      "pattern": "^Apply\\s+(.+)$",
+      "flags": "",
+      "replacement": "应用 $1"
     }
   ]
 }

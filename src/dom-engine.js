@@ -85,6 +85,65 @@
     return { buckets, fallback };
   }
 
+  function normalizeTypographyPreserveCase(str) {
+    return String(str || '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201c\u201d]/g, '"')
+      .replace(/\u2026/g, '...')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function canonicalizeKey(str) {
+    return normalizeTypographyPreserveCase(str).toLowerCase();
+  }
+
+  function splitTrailingPunct(rawTrimmed) {
+    const str = String(rawTrimmed || '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201c\u201d]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const m = str.match(/^([\s\S]*?)(\s+-|\.{3}|\u2026|[.!?:])$/);
+    if (!m) return { base: str, suffix: '' };
+    const base = m[1].trimEnd();
+    return { base, suffix: m[2] === '\u2026' ? '\u2026' : m[2].trimEnd() === '-' ? ' -' : m[2] };
+  }
+
+  function normalizeLooseBase(base) {
+    return String(base || '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function adaptTranslatedTrailingPunct(zhText, origSuffix, inputSuffix) {
+    if (!zhText || inputSuffix === origSuffix) return zhText;
+    const stem = String(zhText).replace(/(?:\.{3}|[\u2026。！？：:?!.]|\s+-)+$/, '');
+    if (!stem) return zhText;
+    switch (inputSuffix) {
+      case '':
+        return stem;
+      case '.':
+        return `${stem}。`;
+      case '!':
+        return `${stem}！`;
+      case '?':
+        return `${stem}？`;
+      case ':':
+        return `${stem}：`;
+      case '...':
+        return `${stem}...`;
+      case '\u2026':
+        return `${stem}\u2026`;
+      case ' -':
+        return `${stem} -`;
+      default:
+        return zhText;
+    }
+  }
+
   function matchBucketedPatterns(trimmed, compiled) {
     const words = extractKeywords(trimmed);
     const tried = new Set();
@@ -146,20 +205,62 @@
     const shellCommandPrefixes = new Set((rules.shellCommandPrefixes || []).map((p) => String(p).toLowerCase()));
 
     const highRiskExact = new Map(Object.entries(highRisk.exact || {}));
-    const highRiskLower = new Map();
+    const highRiskCanonical = new Map();
+    const highRiskLooseBase = new Map();
     for (const [k, v] of highRiskExact.entries()) {
-      const low = k.toLowerCase();
-      if (!highRiskLower.has(low)) highRiskLower.set(low, { origKey: k, value: v });
+      const canon = canonicalizeKey(k);
+      if (canon && !highRiskCanonical.has(canon)) highRiskCanonical.set(canon, { origKey: k, value: v });
+      const { base, suffix } = splitTrailingPunct(k);
+      const loose = normalizeLooseBase(base);
+      if (loose.length >= 4 && (!highRiskLooseBase.has(loose) || suffix === '')) {
+        highRiskLooseBase.set(loose, { origKey: k, origSuffix: suffix, value: v });
+      }
     }
     const highRiskPatterns = compileBucketedPatterns(highRisk.patterns);
 
     const staticExact = new Map(Object.entries(uiStatic.exact || {}));
     const staticLower = new Map();
+    const staticCanonical = new Map();
+    const staticLooseBase = new Map();
     for (const [k, v] of staticExact.entries()) {
       const low = k.toLowerCase();
       if (!staticLower.has(low)) staticLower.set(low, v);
+      const canon = canonicalizeKey(k);
+      if (canon && !staticCanonical.has(canon)) staticCanonical.set(canon, { origKey: k, value: v });
+      const { base, suffix } = splitTrailingPunct(k);
+      const loose = normalizeLooseBase(base);
+      if (loose.length >= 4 && !highRiskLooseBase.has(loose)) {
+        const existingLoose = staticLooseBase.get(loose);
+        if (!existingLoose || (existingLoose.origSuffix !== '' && suffix === '')) {
+          staticLooseBase.set(loose, { origKey: k, origSuffix: suffix, value: v });
+        }
+      }
     }
     const compiledUiPatterns = compileBucketedPatterns(uiPatterns.patterns);
+
+    function isCodeLikeForCanonical(trimmed) {
+      if (!trimmed) return true;
+      if (preservedAcronyms.has(trimmed)) return true;
+      if (
+        URL_OR_EMAIL_RE.test(trimmed) ||
+        WIN_PATH_RE.test(trimmed) ||
+        UNIX_OR_REL_PATH_RE.test(trimmed) ||
+        FILE_WITH_EXT_RE.test(trimmed) ||
+        SEMVER_RE.test(trimmed) ||
+        ENV_VAR_RE.test(trimmed) ||
+        CLI_FLAG_RE.test(trimmed) ||
+        SHELL_OPERATOR_RE.test(trimmed) ||
+        CAMEL_OR_SNAKE_RE.test(trimmed) ||
+        DOTTED_CODE_RE.test(trimmed) ||
+        KEBAB_SLUG_RE.test(trimmed) ||
+        KEYCAP_OR_UNIT_RE.test(trimmed) ||
+        POWERSHELL_CMDLET_RE.test(trimmed)
+      ) {
+        return true;
+      }
+      if (trimmed === trimmed.toLowerCase() && !/\s/.test(trimmed)) return true;
+      return false;
+    }
 
     function looksLikeCodeOrCommand(trimmed) {
       if (!trimmed) return true;
@@ -255,17 +356,20 @@
         return { translated: rawText, changed: false, reason: 'slash-command-preserved' };
       }
 
-      // 2. 高风险双语词典优先（强制保留英文原文对照）
+      // 2. 高风险双语词典优先（强制保留英文原文对照，全长度抗排版/大小写漂移）
       if (highRiskExact.has(trimmed)) {
         const out = preserveWhitespace(rawText, highRiskExact.get(trimmed));
         return { translated: out, changed: out !== rawText, reason: 'high-risk-exact' };
       }
-      if (trimmed.length <= 80 && highRiskLower.has(trimmed.toLowerCase())) {
-        const hit = highRiskLower.get(trimmed.toLowerCase());
+      const canonTrimmed = canonicalizeKey(trimmed);
+      if (!isCodeLikeForCanonical(trimmed) && highRiskCanonical.has(canonTrimmed)) {
+        const hit = highRiskCanonical.get(canonTrimmed);
         const out = preserveWhitespace(rawText, hit.value);
-        return { translated: out, changed: out !== rawText, reason: 'high-risk-exact-ci' };
+        return { translated: out, changed: out !== rawText, reason: 'high-risk-canonical' };
       }
-      const hrPatternHit = matchBucketedPatterns(trimmed, highRiskPatterns);
+      const hrPatternHit =
+        matchBucketedPatterns(trimmed, highRiskPatterns) ||
+        matchBucketedPatterns(normalizeTypographyPreserveCase(trimmed), highRiskPatterns);
       if (hrPatternHit) {
         const out = preserveWhitespace(rawText, hrPatternHit);
         return { translated: out, changed: out !== rawText, reason: 'high-risk-pattern' };
@@ -284,10 +388,25 @@
         };
       }
 
+      // 3.2 L1 全长度规范化索引命中（抵抗客户端更新导致的弯引号、省略号、大小写、多行换行与连接符微调）
+      if (!isCodeLikeForCanonical(trimmed) && staticCanonical.has(canonTrimmed)) {
+        const canonHit = staticCanonical.get(canonTrimmed).value;
+        const wantBilingual = isHighRisk || bilingualAll;
+        const finalText = wantBilingual ? ensureBilingual(canonHit, trimmed) : canonHit;
+        const out = preserveWhitespace(rawText, finalText);
+        return {
+          translated: out,
+          changed: out !== rawText,
+          reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-canonical' : 'static-canonical',
+        };
+      }
+
       // 3.5 长英文 UI/技能说明（>320 字符或含换行，仅允许锚定英文句子命中分桶模板）
       if (!controlOnly && (trimmed.length > 320 || trimmed.includes('\n')) && trimmed.length <= 1600 && /^[A-Z(]/.test(trimmed)) {
-        const normalizedLong = trimmed.replace(/\s+/g, ' ');
-        const longPatternHit = matchBucketedPatterns(normalizedLong, compiledUiPatterns);
+        const normalizedLong = normalizeTypographyPreserveCase(trimmed);
+        const longPatternHit =
+          matchBucketedPatterns(trimmed.replace(/\s+/g, ' '), compiledUiPatterns) ||
+          matchBucketedPatterns(normalizedLong, compiledUiPatterns);
         if (longPatternHit) {
           const wantBilingual = isHighRisk || bilingualAll;
           const finalText = wantBilingual ? ensureBilingual(longPatternHit, normalizedLong) : longPatternHit;
@@ -305,17 +424,42 @@
         return { translated: rawText, changed: false, reason: 'code-or-command-shielded' };
       }
 
-      // 5. L1 短语大小写不敏感查表
-      if (!CJK_RE.test(trimmed) && trimmed.length <= 64 && staticLower.has(trimmed.toLowerCase())) {
-        const ciHit = staticLower.get(trimmed.toLowerCase());
-        const wantBilingual = isHighRisk || bilingualAll;
-        const finalText = wantBilingual ? ensureBilingual(ciHit, trimmed) : ciHit;
-        const out = preserveWhitespace(rawText, finalText);
-        return {
-          translated: out,
-          changed: out !== rawText,
-          reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-static' : 'static-exact',
-        };
+      // 5. L1 短语大小写不敏感与末尾标点/连字符容错查表
+      if (!CJK_RE.test(trimmed)) {
+        if (trimmed.length <= 64 && staticLower.has(trimmed.toLowerCase())) {
+          const ciHit = staticLower.get(trimmed.toLowerCase());
+          const wantBilingual = isHighRisk || bilingualAll;
+          const finalText = wantBilingual ? ensureBilingual(ciHit, trimmed) : ciHit;
+          const out = preserveWhitespace(rawText, finalText);
+          return {
+            translated: out,
+            changed: out !== rawText,
+            reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-static' : 'static-exact',
+          };
+        }
+
+        const { base: inputBase, suffix: inputSuffix } = splitTrailingPunct(trimmed);
+        const inputLoose = normalizeLooseBase(inputBase);
+        if (inputLoose.length >= 4) {
+          if (highRiskLooseBase.has(inputLoose) && /^[A-Z]/.test(trimmed)) {
+            const hrLoose = highRiskLooseBase.get(inputLoose);
+            const adaptedHr = ensureBilingual(hrLoose.value, trimmed);
+            const out = preserveWhitespace(rawText, adaptedHr);
+            return { translated: out, changed: out !== rawText, reason: 'high-risk-loose' };
+          }
+          if (staticLooseBase.has(inputLoose)) {
+            const looseHit = staticLooseBase.get(inputLoose);
+            const adaptedZh = adaptTranslatedTrailingPunct(looseHit.value, looseHit.origSuffix, inputSuffix);
+            const wantBilingual = isHighRisk || bilingualAll;
+            const finalText = wantBilingual ? ensureBilingual(adaptedZh, trimmed) : adaptedZh;
+            const out = preserveWhitespace(rawText, finalText);
+            return {
+              translated: out,
+              changed: out !== rawText,
+              reason: isHighRisk ? 'high-risk-upgraded' : bilingualAll ? 'bilingual-loose' : 'static-loose',
+            };
+          }
+        }
       }
 
       // 5.5 带快捷键后缀的按钮 / 浮层菜单项 / 提示（如 "Quote Ctrl+L"、"Side Question (Ctrl+E)"）
@@ -324,7 +468,11 @@
         if (scMatch) {
           const baseLabel = scMatch[1].trim();
           const shortcutSuffix = scMatch[2];
-          const baseZh = staticExact.get(baseLabel) || staticLower.get(baseLabel.toLowerCase());
+          const baseCanon = canonicalizeKey(baseLabel);
+          const baseZh =
+            staticExact.get(baseLabel) ||
+            staticLower.get(baseLabel.toLowerCase()) ||
+            (staticCanonical.has(baseCanon) ? staticCanonical.get(baseCanon).value : undefined);
           if (baseZh) {
             const wantBilingual = isHighRisk || bilingualAll;
             const renderedLabel = wantBilingual ? ensureBilingual(baseZh, baseLabel) : baseZh;
@@ -342,9 +490,11 @@
         return { translated: rawText, changed: false, reason: 'control-only-miss' };
       }
 
-      // 6. L2 关键词分桶动态模板匹配
+      // 6. L2 关键词分桶动态模板匹配（先试原空白规范化，再试全排版标点规范化）
       const normalized = trimmed.includes('\n') ? trimmed.replace(/\s+/g, ' ') : trimmed;
-      const patternHit = matchBucketedPatterns(normalized, compiledUiPatterns);
+      const patternHit =
+        matchBucketedPatterns(normalized, compiledUiPatterns) ||
+        matchBucketedPatterns(normalizeTypographyPreserveCase(trimmed), compiledUiPatterns);
       if (patternHit) {
         const wantBilingual = isHighRisk || bilingualAll;
         const finalText = wantBilingual ? ensureBilingual(patternHit, trimmed) : patternHit;
@@ -410,9 +560,14 @@
     const textRecords = new WeakMap();
     const attrRecords = new WeakMap();
     const observedRoots = new WeakSet();
+    const boundIframes = new WeakSet();
     const activeObservers = [];
     const trackedTextRefs = new Set();
     const trackedAttrRefs = new Set();
+
+    const UI_STREAM_EXCLUDED_SEL =
+      '[role="toolbar"], [role="tablist"], [role="menu"], [role="menubar"], [role="listbox"], [role="radiogroup"], [role="dialog"], [role="alertdialog"], nav, header, footer, aside';
+    const LOWERCASE_PROSE_WORD_RE = /^[a-z]{2,16}[.,!?;:]?$/;
 
     const LANG_MODE_STORAGE_KEY = 'nawe_lang_mode_v1';
     const WIDGET_POS_STORAGE_KEY = 'nawe_widget_pos_v1';
@@ -469,10 +624,12 @@
         if (!host || host.nodeType !== 1) return false;
         const hostTag = String(host.tagName || '').toUpperCase();
         if (hostTag === 'BUTTON' || hostTag === 'A') return false;
+        if (safeClosest(el, UI_STREAM_EXCLUDED_SEL)) return false;
 
         const siblings = host.childNodes || [];
         let plainSpanCount = 0;
         let singleWordSpanCount = 0;
+        let lowercaseProseCount = 0;
         for (let i = 0; i < siblings.length; i++) {
           const sib = siblings[i];
           if (!sib || sib.nodeType !== 1 || String(sib.tagName || '').toUpperCase() !== 'SPAN') continue;
@@ -480,8 +637,11 @@
           const t = String(sib.textContent || '').trim();
           if (t && !/\s/.test(t) && t.length <= 24) {
             singleWordSpanCount++;
+            if (LOWERCASE_PROSE_WORD_RE.test(t)) {
+              lowercaseProseCount++;
+            }
           }
-          if (plainSpanCount >= 4 && singleWordSpanCount >= 4) {
+          if (plainSpanCount >= 4 && singleWordSpanCount >= 4 && lowercaseProseCount >= 2) {
             return true;
           }
         }
@@ -638,6 +798,18 @@
               observeRoot(root.contentDocument.body);
               walkSubtree(root.contentDocument.body);
             }
+            if (!boundIframes.has(root) && typeof root.addEventListener === 'function') {
+              boundIframes.add(root);
+              root.addEventListener('load', () => {
+                if (!enabled || tripped) return;
+                try {
+                  if (root.contentDocument && root.contentDocument.body) {
+                    observeRoot(root.contentDocument.body);
+                    scheduleNode(root.contentDocument.body);
+                  }
+                } catch (_) {}
+              });
+            }
           } catch (_) {}
         }
       }
@@ -718,7 +890,7 @@
         subtree: true,
         characterData: true,
         attributes: true,
-        attributeFilter: translator.allowedAttributes,
+        attributeFilter: translator.allowedAttributes.concat(['data-state']),
       });
       activeObservers.push(observer);
     }
@@ -1093,9 +1265,41 @@
       }
     }
 
+    function installShadowHook() {
+      try {
+        win.__naweOnShadowRoot = (hostEl, sr) => {
+          if (!enabled || tripped || !sr) return;
+          if (
+            hostEl &&
+            (hostEl.id === 'nawe-floating-root' ||
+              (typeof hostEl.getAttribute === 'function' && hostEl.getAttribute('data-nawe-skip') === 'true'))
+          ) {
+            return;
+          }
+          observeRoot(sr);
+          scheduleNode(sr);
+        };
+        const proto = win.Element && win.Element.prototype;
+        if (proto && typeof proto.attachShadow === 'function' && !proto.__naweAttachShadowHooked__) {
+          const origAttachShadow = proto.attachShadow;
+          proto.attachShadow = function nawePatchedAttachShadow(init) {
+            const sr = origAttachShadow.call(this, init);
+            try {
+              if (typeof win.__naweOnShadowRoot === 'function') {
+                win.__naweOnShadowRoot(this, sr);
+              }
+            } catch (_) {}
+            return sr;
+          };
+          Object.defineProperty(proto, '__naweAttachShadowHooked__', { value: true, enumerable: false });
+        }
+      } catch (_) {}
+    }
+
     function start() {
       try {
-        const target = doc.body || doc.documentElement;
+        installShadowHook();
+        const target = doc.documentElement || doc.body;
         if (!target) return;
         observeRoot(target);
         if (enabled) {

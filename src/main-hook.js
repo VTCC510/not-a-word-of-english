@@ -108,6 +108,34 @@ function compilePatterns(list) {
   return out;
 }
 
+function normalizeNativeText(str) {
+  return String(str || '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitNativeTrailingPunct(norm) {
+  const m = String(norm || '').match(/^([\s\S]*?)(\.{3}|[.!?:])$/);
+  if (!m) return { base: norm, suffix: '' };
+  return { base: m[1].trimEnd(), suffix: m[2] };
+}
+
+function adaptNativeTrailingPunct(zh, suffix) {
+  const stem = String(zh || '').replace(/(?:\.{3}|[\u2026。！？：:?!.])$/, '');
+  if (!stem) return zh;
+  if (suffix === '...') return `${stem}...`;
+  if (suffix === ':') return `${stem}：`;
+  if (suffix === '.') return `${stem}。`;
+  if (suffix === '!') return `${stem}！`;
+  if (suffix === '?') return `${stem}？`;
+  return stem;
+}
+
 /**
  * 构建原生层文案翻译器。
  */
@@ -115,16 +143,34 @@ function createNativeTranslator(dict) {
   const safeDict = dict && typeof dict === 'object' ? dict : {};
   const menuExact = new Map();
   const menuLower = new Map();
+  const menuNorm = new Map();
+  const menuBase = new Map();
   for (const [k, v] of Object.entries(safeDict.menuLabels || {})) {
     menuExact.set(k, v);
     menuLower.set(k.toLowerCase(), v);
+    const norm = normalizeNativeText(k).toLowerCase();
+    if (norm && !menuNorm.has(norm)) menuNorm.set(norm, v);
+    const { base, suffix } = splitNativeTrailingPunct(norm);
+    if (base.length >= 3 && (!menuBase.has(base) || suffix === '')) {
+      menuBase.set(base, v);
+    }
   }
   const menuPatterns = compilePatterns(safeDict.menuPatterns);
 
   const dialogExact = new Map(Object.entries((safeDict.dialogs && safeDict.dialogs.exact) || {}));
+  const dialogNorm = new Map();
+  for (const [k, v] of dialogExact.entries()) {
+    const norm = normalizeNativeText(k).toLowerCase();
+    if (norm && !dialogNorm.has(norm)) dialogNorm.set(norm, { origKey: k, value: v });
+  }
   const dialogBilingual = new Map(
     Object.entries((safeDict.dialogs && safeDict.dialogs.bilingualConfirm) || {})
   );
+  const dialogBilingualNorm = new Map();
+  for (const [k, v] of dialogBilingual.entries()) {
+    const norm = normalizeNativeText(k).toLowerCase();
+    if (norm && !dialogBilingualNorm.has(norm)) dialogBilingualNorm.set(norm, v);
+  }
   const dialogPatterns = compilePatterns(safeDict.dialogs && safeDict.dialogs.patterns);
 
   /**
@@ -143,10 +189,27 @@ function createNativeTranslator(dict) {
     if (menuExact.has(clean)) return menuExact.get(clean);
     if (menuLower.has(clean.toLowerCase())) return menuLower.get(clean.toLowerCase());
 
+    const norm = normalizeNativeText(clean);
+    const normLow = norm.toLowerCase();
+    if (menuNorm.has(normLow)) return menuNorm.get(normLow);
+
     for (const rule of menuPatterns) {
       if (rule.regex.test(clean)) {
         return clean.replace(rule.regex, rule.replacement);
       }
+      if (norm !== clean && rule.regex.test(norm)) {
+        return norm.replace(rule.regex, rule.replacement);
+      }
+    }
+
+    const { base, suffix } = splitNativeTrailingPunct(normLow);
+    if (base.length >= 3 && menuBase.has(base)) {
+      const zh = menuBase.get(base);
+      const isOrigEllipsis = clean.trim().endsWith('\u2026');
+      if (!suffix) return adaptNativeTrailingPunct(zh, '');
+      return isOrigEllipsis && suffix === '...'
+        ? `${zh.replace(/(?:\.{3}|[\u2026。！？：:?!.])$/, '')}\u2026`
+        : adaptNativeTrailingPunct(zh, suffix);
     }
     return raw;
   }
@@ -159,13 +222,28 @@ function createNativeTranslator(dict) {
     if (dialogBilingual.has(trimmed)) {
       return dialogBilingual.get(trimmed);
     }
+    const norm = normalizeNativeText(trimmed);
+    const normLow = norm.toLowerCase();
+    if (dialogBilingualNorm.has(normLow)) {
+      return dialogBilingualNorm.get(normLow);
+    }
     if (dialogExact.has(trimmed)) {
       const zh = dialogExact.get(trimmed);
       return preferBilingual && HIGH_RISK_DIALOG_RE.test(trimmed) ? `${zh} (${trimmed})` : zh;
     }
+    if (dialogNorm.has(normLow)) {
+      const hit = dialogNorm.get(normLow);
+      return preferBilingual && HIGH_RISK_DIALOG_RE.test(trimmed) ? `${hit.value} (${trimmed})` : hit.value;
+    }
     for (const rule of dialogPatterns) {
       if (rule.regex.test(trimmed)) {
         const zh = trimmed.replace(rule.regex, rule.replacement);
+        return preferBilingual && HIGH_RISK_DIALOG_RE.test(trimmed)
+          ? `${zh}\n(${trimmed})`
+          : zh;
+      }
+      if (norm !== trimmed && rule.regex.test(norm)) {
+        const zh = norm.replace(rule.regex, rule.replacement);
         return preferBilingual && HIGH_RISK_DIALOG_RE.test(trimmed)
           ? `${zh}\n(${trimmed})`
           : zh;
@@ -350,10 +428,172 @@ function bindDynamicLabelSync(rawMenu, localizedMenu, translator) {
   }
 }
 
+function resolveDefaultPendingSwapPath() {
+  try {
+    const path = require('path');
+    const parentDir = path.dirname(__dirname);
+    if (path.basename(parentDir).toLowerCase() === 'app.asar') {
+      return path.join(path.dirname(parentDir), '.nawe-backups', 'pending-swap.json');
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
+ * 监听本地 pending-swap.json 信号文件：
+ * 当新版本补丁就绪时直接在 Antigravity 窗口内弹出原生中文【立即重启生效】对话框，
+ * 避免 AI 命令沙盒隐藏弹窗限制，让用户一键完成自动退后台、换包与重启。
+ */
+function startPendingSwapWatcher(electron, rawShowMessageBox, options = {}) {
+  const pendingSwapPath =
+    options.pendingSwapPath !== undefined ? options.pendingSwapPath : resolveDefaultPendingSwapPath();
+  if (!pendingSwapPath) {
+    return { active: false };
+  }
+
+  let fs;
+  let spawn;
+  try {
+    fs = require('fs');
+    spawn = require('child_process').spawn;
+  } catch (_) {
+    return { active: false };
+  }
+
+  const pollIntervalMs = options.pollIntervalMs || 1500;
+  let promptActive = false;
+  const handledIds = new Set();
+
+  function defaultTriggerSwap(info) {
+    try {
+      if (process.platform === 'win32' && info.swapScriptPath && fs.existsSync(info.swapScriptPath)) {
+        const child = spawn('cmd.exe', ['/c', info.swapScriptPath, '--auto'], {
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+        });
+        child.unref();
+      }
+    } catch (_) {}
+    const t = setTimeout(() => {
+      try {
+        if (electron.app && typeof electron.app.exit === 'function') {
+          electron.app.exit(0);
+        }
+      } catch (_) {}
+    }, 150);
+    if (t && typeof t.unref === 'function') t.unref();
+  }
+
+  const triggerFn = typeof options.triggerSwapFn === 'function' ? options.triggerSwapFn : defaultTriggerSwap;
+
+  async function checkOnce() {
+    if (promptActive) return;
+    try {
+      if (!fs.existsSync(pendingSwapPath)) return;
+      const rawText = fs.readFileSync(pendingSwapPath, 'utf8');
+      let info;
+      try {
+        info = JSON.parse(rawText);
+      } catch (_) {
+        return;
+      }
+      if (!info || typeof info !== 'object') {
+        try { fs.unlinkSync(pendingSwapPath); } catch (_) {}
+        return;
+      }
+
+      const reqId = String(info.id || info.createdAt || '');
+      if (reqId && handledIds.has(reqId)) return;
+
+      const createdMs = info.createdAt ? Date.parse(info.createdAt) : NaN;
+      const expired = !Number.isNaN(createdMs) && Date.now() - createdMs > 10 * 60 * 1000;
+      if (expired || !info.stagedFile || !fs.existsSync(info.stagedFile)) {
+        try { fs.unlinkSync(pendingSwapPath); } catch (_) {}
+        return;
+      }
+
+      if (reqId) handledIds.add(reqId);
+      try { fs.unlinkSync(pendingSwapPath); } catch (_) {}
+
+      promptActive = true;
+      let confirmed = false;
+      try {
+        if (info.mode === 'auto') {
+          confirmed = true;
+        } else if (typeof rawShowMessageBox === 'function') {
+          const win =
+            (electron.BrowserWindow &&
+              typeof electron.BrowserWindow.getFocusedWindow === 'function' &&
+              electron.BrowserWindow.getFocusedWindow()) ||
+            (electron.BrowserWindow &&
+              typeof electron.BrowserWindow.getAllWindows === 'function' &&
+              electron.BrowserWindow.getAllWindows()[0]) ||
+            null;
+          const labelText = info.actionLabel || '汉化补丁更新';
+          const verText = info.patchVersion ? ` v${info.patchVersion}` : '';
+          const msgOpts = {
+            type: 'info',
+            buttons: ['立即重启生效', '稍后手动重启'],
+            defaultId: 0,
+            cancelId: 1,
+            noLink: true,
+            title: '一点英语都不会 (not-a-word-of-english)',
+            message: `${labelText}${verText} 已准备就绪，是否立即自动重启生效？`,
+            detail:
+              '补丁包已通过 SHA-256 完整性校验。\n点击「立即重启生效」将自动关闭所有前后台 Antigravity 进程、完成替换并重新打开（全程约 2 秒，无需打开任务管理器或查找脚本）。',
+          };
+          const res = win ? await rawShowMessageBox(win, msgOpts) : await rawShowMessageBox(msgOpts);
+          confirmed = Boolean(res && res.response === 0);
+        }
+
+        if (confirmed) {
+          triggerFn(info);
+        }
+      } finally {
+        promptActive = false;
+      }
+    } catch (_) {
+      promptActive = false;
+    }
+  }
+
+  let timer = null;
+  function startPolling() {
+    if (timer) return;
+    timer = setInterval(() => {
+      void checkOnce();
+    }, pollIntervalMs);
+    if (timer && typeof timer.unref === 'function') timer.unref();
+  }
+
+  if (electron.app && typeof electron.app.whenReady === 'function') {
+    Promise.resolve(electron.app.whenReady())
+      .then(() => {
+        startPolling();
+        void checkOnce();
+      })
+      .catch(() => {});
+  } else {
+    startPolling();
+  }
+
+  return {
+    active: true,
+    checkOnce,
+    stop: () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    },
+  };
+}
+
 /**
  * 在 Electron 主进程中安装全部无侵入原生层 UI 汉化钩子。
  */
-function installMainHook(electron, dict) {
+function installMainHook(electron, dict, options = {}) {
   if (!electron || typeof electron !== 'object') return { installed: false, reason: 'no-electron' };
   if (electron[HOOK_FLAG]) return { installed: false, reason: 'already-installed' };
 
@@ -361,6 +601,10 @@ function installMainHook(electron, dict) {
   const localizedMenus = new WeakSet();
   const rawToLocalizedMenu = new WeakMap();
   let lastRawAppMenu = null;
+  const rawShowMessageBox =
+    electron.dialog && typeof electron.dialog.showMessageBox === 'function'
+      ? electron.dialog.showMessageBox.bind(electron.dialog)
+      : null;
 
   // 1. 代理 Menu.setApplicationMenu / Menu.getApplicationMenu / Menu.prototype.popup
   if (electron.Menu) {
@@ -512,11 +756,13 @@ function installMainHook(electron, dict) {
     };
   }
 
+  const swapWatcher = startPendingSwapWatcher(electron, rawShowMessageBox, options);
+
   try {
     Object.defineProperty(electron, HOOK_FLAG, { value: true, enumerable: false });
   } catch (_) {}
 
-  return { installed: true };
+  return { installed: true, swapWatcher };
 }
 
 module.exports = {

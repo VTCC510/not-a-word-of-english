@@ -24,6 +24,7 @@ const MANIFEST_NAME = 'manifest.json';
 const META_ENTRY_PATH = '.nawe-meta.json';
 const STAGED_ASAR_NAME = 'app.asar.staged';
 const SWAP_SCRIPT_NAME = 'apply-nawe-swap.cmd';
+const PENDING_SWAP_NAME = 'pending-swap.json';
 
 const THIRD_PARTY_MARKERS = [
   'DOM_TRANSLATOR_INJECTION',
@@ -367,9 +368,44 @@ function isFileLocked(filePath) {
   }
 }
 
+function encodePowerShellScript(lines) {
+  return Buffer.from(lines.join('\n'), 'utf16le').toString('base64');
+}
+
+function compareSemver(a, b) {
+  const parse = (v) =>
+    String(v || '0.0.0')
+      .replace(/^v/i, '')
+      .split('.')
+      .slice(0, 3)
+      .map((n) => parseInt(n, 10) || 0);
+  const pa = parse(a);
+  const pb = parse(b);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) {
+      return (pa[i] || 0) > (pb[i] || 0) ? 1 : -1;
+    }
+  }
+  return 0;
+}
+
 /**
- * 在 Windows 上生成极简、透明、可审计的独立脱离换包脚本。
- * 该脚本在 Antigravity 完全退出释放文件锁后，自动校验并原子替换 app.asar，随后重新启动 Antigravity。
+ * 判断当前正在运行的 app.asar 是否已内置 v1.0.5+ 主进程热更新监听器。
+ */
+function hasInAppSwapWatcher(asarPath) {
+  try {
+    const info = inspectAsarState(asarPath);
+    if (info.state !== 'patched-by-nawe' || !info.naweMeta) return false;
+    return compareSemver(info.naweMeta.patchVersion, '1.0.5') >= 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * 在 Windows 上生成透明、可审计的独立脱离换包脚本。
+ * 无论通过应用内提示触发、启动批处理触发还是直接双击，都会自动平滑退出并清理后台驻留
+ * Antigravity 进程（不使用 /T 以免误伤自身），等待锁释放后原子替换并重新启动。
  */
 function createWindowsSwapScript({
   scriptPath,
@@ -378,42 +414,95 @@ function createWindowsSwapScript({
   backupFile,
   exePath,
   actionLabel,
+  pendingSwapPath = null,
   autoRestart = true,
 }) {
   const esc = (s) => String(s).replace(/"/g, '');
+  const promptB64 = encodePowerShellScript([
+    '$ws = New-Object -ComObject WScript.Shell',
+    `$msg = 'not-a-word-of-english 补丁包已通过 SHA-256 安全校验，准备执行${actionLabel}。' + [Environment]::NewLine + [Environment]::NewLine + '点击【确定】将自动关闭所有前后台 Antigravity 进程、完成替换并立即重启客户端（全程约 3 秒）。' + [Environment]::NewLine + '如需稍后操作，请点击【取消】。'`,
+    `$title = 'Antigravity 汉化助手 (${actionLabel})'`,
+    '$r = $ws.Popup($msg, 0, $title, 0x41041)',
+    'if ($r -eq 1) { exit 0 } else { exit 1 }',
+  ]);
+  const errorB64 = encodePowerShellScript([
+    '$ws = New-Object -ComObject WScript.Shell',
+    `$msg = '${actionLabel}未能完成，已确保 Antigravity 原文件未被破坏。请关闭所有相关窗口后重新运行汉化命令或双击启动脚本重试。'`,
+    `$title = 'Antigravity 汉化助手 - 操作未完成'`,
+    '$ws.Popup($msg, 0, $title, 0x41030) | Out-Null',
+  ]);
+
   const lines = [
     '@echo off',
     'chcp 65001 >nul',
     'setlocal EnableExtensions',
-    `echo [not-a-word-of-english] 正在等待 Antigravity 完全退出以执行${actionLabel}...`,
+    'if /I not "%~1"=="--prompt" goto DO_SWAP',
+    'rem Prompt dialog (WScript.Shell.Popup 0x41041)',
+    `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand ${promptB64}`,
+    'if %ERRORLEVEL% NEQ 0 exit /b 0',
+    '',
+    ':DO_SWAP',
+    'echo [not-a-word-of-english] Preparing to apply update...',
+  ];
+
+  if (pendingSwapPath) {
+    lines.push(`if exist "${esc(pendingSwapPath)}" del /F /Q "${esc(pendingSwapPath)}" >nul 2>&1`);
+  }
+
+  lines.push(
+    'timeout /t 1 /nobreak >nul',
+    'taskkill /IM "Antigravity.exe" >nul 2>&1',
+    'timeout /t 1 /nobreak >nul',
+    'tasklist /FI "IMAGENAME eq Antigravity.exe" /FO CSV /NH 2>nul | find /I "Antigravity.exe" >nul',
+    'if %ERRORLEVEL%==0 (',
+    '  echo [not-a-word-of-english] Closing background Antigravity processes...',
+    '  taskkill /F /IM "Antigravity.exe" >nul 2>&1',
+    ')',
     'set /a RETRIES=0',
     ':WAIT_LOOP',
     'tasklist /FI "IMAGENAME eq Antigravity.exe" /FO CSV /NH 2>nul | find /I "Antigravity.exe" >nul',
-    'if %ERRORLEVEL%==0 (',
-    '  set /a RETRIES+=1',
-    '  if %RETRIES% GEQ 120 (',
-    '    echo [错误] 等待 Antigravity 退出超时（120秒），已安全取消替换，原文件未被改动。',
-    '    pause',
-    '    exit /b 1',
-    '  )',
-    '  timeout /t 1 /nobreak >nul',
-    '  goto WAIT_LOOP',
-    ')',
+    'if %ERRORLEVEL% NEQ 0 goto WAIT_DONE',
+    'set /a RETRIES+=1',
+    'if %RETRIES% GEQ 20 goto WAIT_TIMEOUT',
     'timeout /t 1 /nobreak >nul',
-    `if not exist "${esc(stagedFile)}" (`,
-    '  echo [错误] 找不到已准备好的目标文件，操作中止。',
-    '  pause',
+    'goto WAIT_LOOP',
+    '',
+    ':WAIT_TIMEOUT',
+    'echo [ERROR] Some Antigravity processes did not exit. Swap cancelled safely.',
+    'goto SWAP_FAIL',
+    '',
+    ':WAIT_DONE',
+    'timeout /t 1 /nobreak >nul',
+    `if exist "${esc(stagedFile)}" goto DO_MOVE`,
+    'echo [ERROR] Staged package not found. Operation aborted.',
+    'goto SWAP_FAIL',
+    '',
+    ':DO_MOVE',
+    'set /a MOVE_TRIES=0',
+    ':MOVE_LOOP',
+    `move /Y "${esc(stagedFile)}" "${esc(targetAsar)}" >nul 2>&1`,
+    'if %ERRORLEVEL%==0 goto MOVE_OK',
+    'set /a MOVE_TRIES+=1',
+    'if %MOVE_TRIES% GEQ 15 goto MOVE_FAIL',
+    'timeout /t 1 /nobreak >nul',
+    'goto MOVE_LOOP',
+    '',
+    ':MOVE_FAIL',
+    'echo [ERROR] Failed to replace app.asar. Verifying original backup...',
+    `if not exist "${esc(targetAsar)}" copy /Y "${esc(backupFile)}" "${esc(targetAsar)}" >nul`,
+    'goto SWAP_FAIL',
+    '',
+    ':SWAP_FAIL',
+    'if /I "%~1"=="--prompt" (',
+    `  powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand ${errorB64}`,
     '  exit /b 1',
     ')',
-    `move /Y "${esc(stagedFile)}" "${esc(targetAsar)}" >nul`,
-    'if %ERRORLEVEL% NEQ 0 (',
-    '  echo [错误] 替换 app.asar 失败，正在尝试确保原版完好...',
-    `  if not exist "${esc(targetAsar)}" copy /Y "${esc(backupFile)}" "${esc(targetAsar)}" >nul`,
-    '  pause',
-    '  exit /b 1',
-    ')',
-    `echo [not-a-word-of-english] ${actionLabel}已安全完成！`,
-  ];
+    'pause',
+    'exit /b 1',
+    '',
+    ':MOVE_OK',
+    'echo [not-a-word-of-english] Swap completed safely! Relaunching Antigravity...'
+  );
 
   if (autoRestart && exePath) {
     lines.push(`start "" "${esc(exePath)}"`);
@@ -425,17 +514,38 @@ function createWindowsSwapScript({
   return scriptPath;
 }
 
+function writePendingSwapSignal(backupDir, payload) {
+  fs.mkdirSync(backupDir, { recursive: true });
+  const signalPath = path.join(backupDir, PENDING_SWAP_NAME);
+  const tmpPath = `${signalPath}.tmp.${process.pid}`;
+  fs.writeFileSync(tmpPath, JSON.stringify(payload, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmpPath, signalPath);
+  return signalPath;
+}
+
+function normalizeSwapLaunchMode(swapLaunchMode, launchSwapOnLock) {
+  if (swapLaunchMode === 'prompt' || swapLaunchMode === 'auto' || swapLaunchMode === 'none') {
+    return swapLaunchMode;
+  }
+  return launchSwapOnLock ? 'auto' : 'none';
+}
+
 /**
  * 原子将准备好的 stagedFile 替换到 targetAsar；如果文件被锁定则进入两段式热换包。
  */
 function commitAsarSwap(installInfo, stagedFile, {
   backupFile,
   actionLabel,
+  patchVersion = null,
   launchSwapOnLock = false,
+  swapLaunchMode,
   autoRestart = true,
+  inAppWatcherActive = false,
+  allowExternalSpawn = false,
   simulateLocked = false,
   isProcessRunning = isAntigravityRunning,
 } = {}) {
+  const effectiveLaunchMode = normalizeSwapLaunchMode(swapLaunchMode, launchSwapOnLock);
   const running = simulateLocked || isProcessRunning() === true || isFileLocked(installInfo.asarPath);
 
   if (!running) {
@@ -453,6 +563,7 @@ function commitAsarSwap(installInfo, stagedFile, {
       return {
         applied: true,
         mode: 'immediate',
+        deliveryMethod: 'immediate',
         asarPath: installInfo.asarPath,
       };
     } catch (err) {
@@ -463,8 +574,12 @@ function commitAsarSwap(installInfo, stagedFile, {
     }
   }
 
-  // 软件正在运行（文件锁定）：保留 staged 文件并生成安全脱离换包脚本
+  // 软件正在运行（文件锁定）：保留 staged 文件并生成脱离换包脚本 + 写入应用内信号文件
   const swapScriptPath = path.join(installInfo.backupDir, SWAP_SCRIPT_NAME);
+  const pendingSwapPath = path.join(installInfo.backupDir, PENDING_SWAP_NAME);
+  let deliveryMethod = effectiveLaunchMode === 'none' ? 'staged-only' : 'bat-one-step';
+  let helperLaunched = false;
+
   if (process.platform === 'win32') {
     createWindowsSwapScript({
       scriptPath: swapScriptPath,
@@ -473,16 +588,40 @@ function commitAsarSwap(installInfo, stagedFile, {
       backupFile,
       exePath: installInfo.exePath,
       actionLabel,
+      pendingSwapPath,
       autoRestart,
     });
+  }
 
-    if (launchSwapOnLock) {
-      const child = spawn('cmd.exe', ['/c', 'start', '"not-a-word-of-english 换包助手"', swapScriptPath], {
+  if (effectiveLaunchMode !== 'none') {
+    writePendingSwapSignal(installInfo.backupDir, {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      mode: effectiveLaunchMode,
+      patchVersion,
+      actionLabel,
+      stagedFile,
+      swapScriptPath: process.platform === 'win32' ? swapScriptPath : null,
+      targetAsar: installInfo.asarPath,
+      backupFile,
+      exePath: installInfo.exePath,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (inAppWatcherActive) {
+      deliveryMethod = 'in-app-dialog';
+      helperLaunched = true;
+    } else if (allowExternalSpawn && process.platform === 'win32') {
+      const child = spawn('cmd.exe', ['/c', 'start', '""', '/min', swapScriptPath, '--auto'], {
         detached: true,
         stdio: 'ignore',
-        windowsHide: false,
+        windowsHide: true,
       });
       child.unref();
+      deliveryMethod = 'external-auto';
+      helperLaunched = true;
+    } else {
+      deliveryMethod = 'bat-one-step';
+      helperLaunched = false;
     }
   }
 
@@ -490,7 +629,11 @@ function commitAsarSwap(installInfo, stagedFile, {
     applied: false,
     mode: 'staged-pending-restart',
     stagedFile,
+    pendingSwapPath,
     swapScriptPath: process.platform === 'win32' ? swapScriptPath : null,
+    swapLaunchMode: effectiveLaunchMode,
+    deliveryMethod,
+    helperLaunched,
   };
 }
 
@@ -503,11 +646,14 @@ function applyPatch(installInfo, modifications, options = {}) {
     dryRun = false,
     allowThirdPartyBase = false,
     launchSwapOnLock = false,
+    swapLaunchMode,
     autoRestart = true,
+    allowExternalSpawn = false,
     simulateLocked = false,
     isProcessRunning = isAntigravityRunning,
   } = options;
 
+  const inAppWatcherActive = !simulateLocked && hasInAppSwapWatcher(installInfo.asarPath);
   const backupInfo = ensureCleanBackup(installInfo, { allowThirdPartyBase });
 
   const modMap = new Map(modifications instanceof Map ? modifications : Object.entries(modifications));
@@ -541,8 +687,12 @@ function applyPatch(installInfo, modifications, options = {}) {
   const swapResult = commitAsarSwap(installInfo, stagedPath, {
     backupFile: backupInfo.sourceAsarPath,
     actionLabel: '汉化补丁替换',
+    patchVersion,
     launchSwapOnLock,
+    swapLaunchMode,
     autoRestart,
+    inAppWatcherActive,
+    allowExternalSpawn,
     simulateLocked,
     isProcessRunning,
   });
@@ -566,15 +716,149 @@ function applyPatch(installInfo, modifications, options = {}) {
 }
 
 /**
+ * 校验并应用已经暂存就绪的 app.asar.staged（供 `node cli.js apply` 一键触发）。
+ */
+function applyPendingStaged(installInfo, options = {}) {
+  const {
+    swapLaunchMode = 'prompt',
+    autoRestart = true,
+    allowExternalSpawn = false,
+    simulateLocked = false,
+    isProcessRunning = isAntigravityRunning,
+  } = options;
+
+  const stagedPath = path.join(installInfo.backupDir, STAGED_ASAR_NAME);
+  if (!fs.existsSync(stagedPath)) {
+    throw new Error('未找到已暂存的补丁包（app.asar.staged），请先运行 node cli.js install --apply。');
+  }
+
+  asar.verifyAsar(stagedPath, { checkIntegrity: true });
+
+  const inAppWatcherActive = !simulateLocked && hasInAppSwapWatcher(installInfo.asarPath);
+  const manifest = readManifest(installInfo.manifestPath);
+  const backupFile = manifest && manifest.originalBackupFile ? manifest.originalBackupFile : null;
+  const metaText = asar.readFileText(stagedPath, META_ENTRY_PATH);
+  let patchVersion = null;
+  if (metaText) {
+    try {
+      patchVersion = JSON.parse(metaText).patchVersion || null;
+    } catch (_) {}
+  }
+  const actionLabel = metaText ? '汉化补丁替换' : '官方原版还原';
+
+  const swapResult = commitAsarSwap(installInfo, stagedPath, {
+    backupFile,
+    actionLabel,
+    patchVersion,
+    swapLaunchMode,
+    autoRestart,
+    inAppWatcherActive,
+    allowExternalSpawn,
+    simulateLocked,
+    isProcessRunning,
+  });
+
+  return {
+    ok: true,
+    actionLabel,
+    ...swapResult,
+  };
+}
+
+/**
+ * 由「启动汉化工具.bat」调用：消费刚刚暂存的 pending-swap.json 信号并一键完成退后台、换包与重启。
+ */
+function consumePendingSwapFromBat(customPath) {
+  const install = detectAntigravityInstall(customPath);
+  const pendingSwapPath = path.join(install.backupDir, PENDING_SWAP_NAME);
+  const stagedPath = path.join(install.backupDir, STAGED_ASAR_NAME);
+  if (!fs.existsSync(pendingSwapPath) || !fs.existsSync(stagedPath)) {
+    return { consumed: false };
+  }
+
+  let info;
+  try {
+    info = JSON.parse(fs.readFileSync(pendingSwapPath, 'utf8'));
+  } catch (_) {
+    return { consumed: false };
+  }
+
+  const createdMs = info && info.createdAt ? Date.parse(info.createdAt) : NaN;
+  const expired = !Number.isNaN(createdMs) && Date.now() - createdMs > 30 * 60 * 1000;
+  if (!info || expired) {
+    try { fs.unlinkSync(pendingSwapPath); } catch (_) {}
+    return { consumed: false };
+  }
+
+  try {
+    asar.verifyAsar(stagedPath, { checkIntegrity: true });
+  } catch (_) {
+    return { consumed: false };
+  }
+
+  try { fs.unlinkSync(pendingSwapPath); } catch (_) {}
+
+  const manifest = readManifest(install.manifestPath);
+  const backupFile = info.backupFile || (manifest && manifest.originalBackupFile) || null;
+  const actionLabel = info.actionLabel || '汉化补丁替换';
+  const swapScriptPath = path.join(install.backupDir, SWAP_SCRIPT_NAME);
+
+  const running = isAntigravityRunning() === true || isFileLocked(install.asarPath);
+  if (!running) {
+    const swapRes = commitAsarSwap(install, stagedPath, {
+      backupFile,
+      actionLabel,
+      swapLaunchMode: 'none',
+    });
+    try {
+      if (fs.existsSync(swapScriptPath)) fs.unlinkSync(swapScriptPath);
+    } catch (_) {}
+    if (swapRes.applied && info.exePath && fs.existsSync(info.exePath)) {
+      const child = spawn(info.exePath, [], {
+        detached: true,
+        stdio: 'ignore',
+      });
+      child.unref();
+    }
+    return { consumed: true, immediate: Boolean(swapRes.applied), info };
+  }
+
+  if (process.platform === 'win32') {
+    createWindowsSwapScript({
+      scriptPath: swapScriptPath,
+      stagedFile: stagedPath,
+      targetAsar: install.asarPath,
+      backupFile,
+      exePath: install.exePath,
+      actionLabel,
+      pendingSwapPath,
+      autoRestart: true,
+    });
+    const child = spawn('cmd.exe', ['/c', 'start', '""', '/min', swapScriptPath, '--auto'], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    child.unref();
+  }
+
+  return { consumed: true, immediate: false, info };
+}
+
+/**
  * 一键无损还原为官方英文原版。
  */
 function restoreOriginal(installInfo, options = {}) {
   const {
     launchSwapOnLock = false,
+    swapLaunchMode,
     autoRestart = true,
+    allowExternalSpawn = false,
     simulateLocked = false,
     isProcessRunning = isAntigravityRunning,
   } = options;
+
+  const inAppWatcherActive = !simulateLocked && hasInAppSwapWatcher(installInfo.asarPath);
 
   const manifest = readManifest(installInfo.manifestPath);
   if (!manifest || !manifest.originalBackupFile || !fs.existsSync(manifest.originalBackupFile)) {
@@ -611,7 +895,10 @@ function restoreOriginal(installInfo, options = {}) {
     backupFile: manifest.originalBackupFile,
     actionLabel: '官方原版还原',
     launchSwapOnLock,
+    swapLaunchMode,
     autoRestart,
+    inAppWatcherActive,
+    allowExternalSpawn,
     simulateLocked,
     isProcessRunning,
   });
@@ -659,6 +946,10 @@ module.exports = {
   META_ENTRY_PATH,
   STAGED_ASAR_NAME,
   SWAP_SCRIPT_NAME,
+  PENDING_SWAP_NAME,
+  compareSemver,
+  hasInAppSwapWatcher,
+  consumePendingSwapFromBat,
   resolveInstallFromInput,
   detectAntigravityInstall,
   inspectAsarState,
@@ -666,6 +957,7 @@ module.exports = {
   isAntigravityRunning,
   isFileLocked,
   applyPatch,
+  applyPendingStaged,
   restoreOriginal,
   getStatusReport,
 };
