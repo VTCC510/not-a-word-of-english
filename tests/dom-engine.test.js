@@ -1167,3 +1167,75 @@ test('Model group/lock tooltips, Firebase detail page, all 9 Marketplace shelves
   assert.equal(t.translateText('Generate Figma Design').translated, '生成 Figma 设计稿');
 });
 
+test('Antigravity 2.35.2 in-flight model switching, sidebar display options, Command Palette, and project/conversation menus translate cleanly', () => {
+  const t = createDomTranslator(bundle);
+
+  // 1) Antigravity 2.35.2 运行中切换模型新提示
+  assert.equal(
+    t.translateText('Applies to /btw and messages sent after this turn').translated,
+    '将应用于 /btw 及本轮对话之后发送的消息'
+  );
+  assert.equal(
+    t.translateText('Applies to messages sent after this turn').translated,
+    '将应用于本轮对话之后发送的消息'
+  );
+
+  // 2) 右侧边栏搜索框与自定义分区
+  assert.equal(t.translateText('Search or enter a URL').translated, '搜索或输入网址');
+  assert.equal(t.translateText('Skills Used').translated, '已使用的技能');
+  assert.equal(t.translateText('Active Goal').translated, '当前目标');
+  assert.equal(t.translateText('Agent Edits').translated, '智能体编辑');
+
+  // 3) 命令面板（Command Palette）指令与筛选 + restore_page 图标标识安全锁定
+  assert.equal(t.translateText('Search for commands...').translated, '搜索指令...');
+  assert.equal(t.translateText('Collapse All Folders').translated, '全部折叠文件夹');
+  assert.equal(t.translateText('Expand All Folders').translated, '全部展开文件夹');
+  assert.equal(t.translateText('Provide Feedback').translated, '提交反馈');
+  assert.equal(t.translateText('Download Diagnostics').translated, '下载诊断信息');
+  assert.equal(t.translateText('Toggle Between Light/Dark Themes').translated, '切换浅色/深色主题');
+  assert.equal(t.translateText('Mark All as Read').translated, '全部标为已读');
+  assert.equal(t.translateText('Unpin This Conversation').translated, '取消置顶当前对话');
+  assert.equal(t.translateText('Mark This Conversation as Unread').translated, '将当前对话标为未读');
+  assert.equal(t.translateText('Rename This Conversation').translated, '重命名当前对话');
+  assert.equal(t.translateText('Copy Conversation Markdown').translated, '复制对话 Markdown');
+  assert.equal(t.translateText('File Picker').translated, '文件选择器');
+  assert.equal(t.translateText('Open Project Picker').translated, '打开项目选择器');
+  assert.equal(t.translateText('Select Sidebar Item 3').translated, '选择侧边栏第 3 项');
+  assert.equal(t.translateText('restore_page').changed, false);
+  assert.equal(t.translateText('restore_page').translated, 'restore_page');
+
+  // 4) 侧边栏显示选项及子菜单（Sort / Filter / Display / Auto Pin / Archived Only / 收件箱模式）
+  assert.equal(t.translateText('Sort Conversations').translated, '对话排序');
+  assert.equal(t.translateText('Sort Projects').translated, '项目排序');
+  assert.equal(t.translateText('Last Updated').translated, '最近更新');
+  assert.equal(t.translateText('Last Prompt').translated, '最近提问');
+  assert.equal(t.translateText('Custom Order').translated, '自定义顺序');
+  assert.equal(t.translateText('Display').translated, '显示内容');
+  assert.equal(t.translateText('Subtitles').translated, '副标题');
+  assert.equal(t.translateText('Project + Worktree').translated, '项目 + 工作树');
+  assert.equal(t.translateText('Decorations').translated, '附加标识');
+  assert.equal(t.translateText('Auto Pin').translated, '自动置顶');
+  assert.equal(
+    t.translateText('Automatically pin conversations when you send a message. Unpin as needed to keep your Pinned list focused.').translated,
+    '发送消息时自动置顶对话，可按需取消置顶以保持置顶列表精简聚焦。'
+  );
+  assert.equal(t.translateText('Archived Only').translated, '仅看已归档');
+  assert.equal(t.translateText('Projects (Archived)').translated, '项目列表（已归档）');
+  assert.equal(t.translateText('No archived conversations').translated, '暂无已归档的对话');
+  assert.equal(t.translateText('Inbox Mode').translated, '收件箱模式');
+  assert.equal(t.translateText('Working Section').translated, '运行中分区');
+  assert.equal(t.translateText('Auto-Resolve').translated, '自动归结');
+  assert.equal(t.translateText('Needs Input').translated, '等待输入');
+
+  // 5) 项目/对话菜单与高风险删除弹窗
+  assert.equal(t.translateText('Copy Project Name').translated, '复制项目名称');
+  assert.equal(t.translateText('Delete Project').translated, '删除项目 (Delete Project)');
+  assert.equal(t.translateText('Delete Permanently').translated, '永久删除 (Delete Permanently)');
+  assert.equal(t.translateText('Mark Unread').translated, '标为未读');
+  assert.equal(
+    t.translateText('2 active conversations and 1 archived conversation').translated,
+    '2 个活跃对话和 1 个已归档对话'
+  );
+});
+
+

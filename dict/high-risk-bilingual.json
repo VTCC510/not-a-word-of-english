@@ -80,6 +80,10 @@
     "Force Push": "强制推送 (Force Push)",
     "Push to Remote": "推送到远程仓库 (Push to Remote)",
     "Uninstall": "卸载 (Uninstall)",
+    "Delete Project": "删除项目 (Delete Project)",
+    "Delete Workspace": "删除工作区 (Delete Workspace)",
+    "Delete Permanently": "永久删除 (Delete Permanently)",
+    "This will permanently delete": "警告：此操作将永久删除 (This will permanently delete)",
 
     "Waiting for approval": "等待人工批准 (Waiting for approval)",
     "Waiting for your approval": "等待你的批准 (Waiting for your approval)",

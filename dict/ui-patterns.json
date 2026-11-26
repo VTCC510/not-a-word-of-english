@@ -1955,6 +1955,75 @@
       "pattern": "^Apply\\s+(.+)$",
       "flags": "",
       "replacement": "应用 $1"
+    },
+    {
+      "keywords": [
+        "select",
+        "sidebar",
+        "item"
+      ],
+      "pattern": "^Select\\s+Sidebar\\s+Item\\s+(\\d+)$",
+      "flags": "",
+      "replacement": "选择侧边栏第 $1 项"
+    },
+    {
+      "keywords": [
+        "sort",
+        "filter",
+        "conversations",
+        "active"
+      ],
+      "pattern": "^Sort\\s+and\\s+filter\\s+conversations\\s+\\((\\d+)\\s+active\\)$",
+      "flags": "i",
+      "replacement": "排序与筛选对话（已启用 $1 项）"
+    },
+    {
+      "keywords": [
+        "active",
+        "archived",
+        "conversations"
+      ],
+      "pattern": "^(\\d+)\\s+active\\s+conversations?\\s+and\\s+(\\d+)\\s+archived\\s+conversations?$",
+      "flags": "i",
+      "replacement": "$1 个活跃对话和 $2 个已归档对话"
+    },
+    {
+      "keywords": [
+        "active",
+        "conversation"
+      ],
+      "pattern": "^(\\d+)\\s+active\\s+conversations?$",
+      "flags": "i",
+      "replacement": "$1 个活跃对话"
+    },
+    {
+      "keywords": [
+        "archived",
+        "conversation"
+      ],
+      "pattern": "^(\\d+)\\s+archived\\s+conversations?$",
+      "flags": "i",
+      "replacement": "$1 个已归档对话"
+    },
+    {
+      "keywords": [
+        "failed",
+        "delete",
+        "project"
+      ],
+      "pattern": "^Failed\\s+to\\s+delete\\s+project:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "删除项目失败：$1"
+    },
+    {
+      "keywords": [
+        "failed",
+        "delete",
+        "workspace"
+      ],
+      "pattern": "^Failed\\s+to\\s+delete\\s+workspace:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "删除工作区失败：$1"
     }
   ]
 }
