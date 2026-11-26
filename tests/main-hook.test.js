@@ -369,3 +369,275 @@ test('Native menu and dialog translator tolerates ellipsis, curly quotes, casing
   assert.equal(translatedQuit.title, '确认退出 (Confirm Quit)');
   assert.deepEqual(translatedQuit.buttons, ['取消 (Cancel)', '退出 (Quit)']);
 });
+
+test('Native Electron right-click context menus translate submenus and keep bilingual safety items', () => {
+  const env = createMockElectron();
+  installMainHook(env.electron, nativeDict);
+
+  const ctxMenu = env.electron.Menu.buildFromTemplate([
+    { label: 'Open In', submenu: [{ label: 'Open in Side Panel' }, { label: 'Side Panel (Default)' }] },
+    { label: 'Close Tabs to the Right' },
+    { label: 'Fork', submenu: [{ label: 'Fork in Current Workspace' }, { label: 'Fork in New Workspace' }] },
+    { label: 'Undo to Here' },
+    { label: 'Delete Project' },
+    { label: 'Delete Permanently' },
+  ]);
+  ctxMenu.popup({});
+
+  assert.equal(env.popupCalls.length, 1);
+  assert.equal(ctxMenu.items[0].label, '打开方式');
+  const shown = env.popupCalls[0].menu;
+  assert.equal(shown, ctxMenu);
+  assert.equal(shown.items[0].label, '打开方式');
+  assert.equal(shown.items[0].submenu.items[0].label, '在侧边面板中打开');
+  assert.equal(shown.items[0].submenu.items[1].label, '侧边面板（默认）');
+  assert.equal(shown.items[1].label, '关闭右侧标签页');
+  assert.equal(shown.items[2].label, '分支对话');
+  assert.equal(shown.items[2].submenu.items[0].label, '在当前工作区中派生');
+  assert.equal(shown.items[2].submenu.items[1].label, '在新工作区中派生');
+  assert.equal(shown.items[3].label, '回滚到此处 (Undo to Here)');
+  assert.equal(shown.items[4].label, '删除项目 (Delete Project)');
+  assert.equal(shown.items[5].label, '永久删除 (Delete Permanently)');
+});
+
+test('IPC window:show-context-menu translates nested menus while preserving ids, and skips duplicate popup rebuilds', async () => {
+  const handlers = new Map();
+  const appListeners = new Map();
+  const env = createMockElectron();
+  env.electron.ipcMain = {
+    handle(channel, fn) {
+      handlers.set(channel, fn);
+    },
+  };
+  env.electron.app = {
+    on(event, fn) {
+      if (!appListeners.has(event)) appListeners.set(event, []);
+      appListeners.get(event).push(fn);
+    },
+  };
+
+  installMainHook(env.electron, nativeDict, {
+    sidecarPayloadSource: '/* [NAWE-PRELOAD-ENGINE-BEGIN] */window.__naweInjected=1;/* [NAWE-PRELOAD-ENGINE-END] */',
+  });
+
+  let receivedItems = null;
+  env.electron.ipcMain.handle('window:show-context-menu', async (_event, items) => {
+    receivedItems = items;
+    const menu = env.electron.Menu.buildFromTemplate(items);
+    menu.popup({});
+    return 'conv-rename';
+  });
+
+  const handler = handlers.get('window:show-context-menu');
+  const rawConvItems = [
+    { id: 'conv-rename', label: 'Rename' },
+    { id: 'conv-pin', label: 'Pin' },
+    { id: 'conv-unread', label: 'Mark Unread' },
+    {
+      id: 'conv-copy',
+      type: 'submenu',
+      label: 'Copy',
+      submenu: [
+        { id: 'copy-0', label: 'Conversation Name' },
+        { id: 'copy-1', label: 'Conversation ID' },
+        { id: 'copy-2', label: 'Workspace Name' },
+        { id: 'copy-3', label: 'Project Name' },
+      ],
+    },
+    {
+      id: 'conv-split',
+      type: 'submenu',
+      label: 'Split',
+      submenu: [
+        { id: 'split-0', label: 'Split Right' },
+        { id: 'split-1', label: 'Split Down' },
+        { id: 'split-2', label: 'Replace with New' },
+        { id: 'split-3', label: 'Remove from Split' },
+      ],
+    },
+    { id: 'conv-archive', label: 'Archive' },
+    { id: 'conv-delete', label: 'Delete' },
+    { id: 'proj-copy', label: 'Copy Project Name' },
+    { id: 'proj-settings', label: 'Project Settings' },
+    { id: 'proj-delete', label: 'Delete Project' },
+  ];
+
+  const retId = await handler({}, rawConvItems);
+  assert.equal(retId, 'conv-rename');
+  assert.equal(rawConvItems[0].label, 'Rename');
+  assert.equal(receivedItems[0].id, 'conv-rename');
+  assert.equal(receivedItems[0].label, '重命名');
+  assert.equal(receivedItems[1].label, '置顶');
+  assert.equal(receivedItems[2].label, '标为未读');
+  assert.equal(receivedItems[3].label, '复制');
+  assert.deepEqual(
+    receivedItems[3].submenu.map((i) => [i.id, i.label]),
+    [
+      ['copy-0', '对话名称'],
+      ['copy-1', '对话 ID'],
+      ['copy-2', '工作区名称'],
+      ['copy-3', '项目名称'],
+    ]
+  );
+  assert.equal(receivedItems[4].label, '拆分视图');
+  assert.deepEqual(
+    receivedItems[4].submenu.map((i) => [i.id, i.label]),
+    [
+      ['split-0', '向右拆分'],
+      ['split-1', '向下拆分'],
+      ['split-2', '替换为新对话'],
+      ['split-3', '移出拆分视图'],
+    ]
+  );
+  assert.equal(receivedItems[5].label, '归档');
+  assert.equal(receivedItems[6].label, '删除');
+  assert.equal(receivedItems[7].label, '复制项目名称');
+  assert.equal(receivedItems[8].label, '项目设置');
+  assert.equal(receivedItems[9].label, '删除项目 (Delete Project)');
+
+  // 已经通过 IPC 翻译好的菜单在 popup 时保持原实例（不重复克隆），维持 activeContextMenu 身份一致
+  assert.equal(env.popupCalls.length, 1);
+  assert.equal(env.popupCalls[0].menu.items[0].label, '重命名');
+
+  // plugin:// sidecar 注入严格隔离非 plugin:// 页面
+  const wcListeners = new Map();
+  const mockContents = {
+    on(ev, fn) {
+      wcListeners.set(ev, fn);
+    },
+  };
+  for (const fn of appListeners.get('web-contents-created') || []) {
+    fn({}, mockContents);
+  }
+  const executed = [];
+  const finishLoad = wcListeners.get('did-frame-finish-load');
+  assert.ok(finishLoad);
+
+  finishLoad({
+    frame: {
+      url: 'plugin://swarm-board/index.html',
+      executeJavaScript(code) {
+        executed.push(code);
+        return Promise.resolve();
+      },
+    },
+  });
+  finishLoad({
+    frame: {
+      url: 'https://example.com/',
+      executeJavaScript(code) {
+        executed.push(code);
+        return Promise.resolve();
+      },
+    },
+  });
+  finishLoad({
+    frame: {
+      url: 'http://127.0.0.1:9999/',
+      executeJavaScript(code) {
+        executed.push(code);
+        return Promise.resolve();
+      },
+    },
+  });
+
+  assert.equal(executed.length, 1);
+  assert.match(executed[0], /__naweInjected=1/);
+});
+
+test('Menu.buildFromTemplate translates context menus and isolates frozen Menu.prototype.popup / ipcMain.handle', async () => {
+  const handlers = new Map();
+  const appListeners = new Map();
+  const env = createMockElectron();
+  Object.defineProperty(env.electron.Menu.prototype, 'popup', {
+    value: env.electron.Menu.prototype.popup,
+    writable: false,
+    configurable: false,
+  });
+  env.electron.ipcMain = {};
+  Object.defineProperty(env.electron.ipcMain, 'handle', {
+    value(channel, fn) {
+      handlers.set(channel, fn);
+    },
+    writable: false,
+    configurable: false,
+  });
+  env.electron.app = {
+    on(event, fn) {
+      if (!appListeners.has(event)) appListeners.set(event, []);
+      appListeners.get(event).push(fn);
+    },
+  };
+
+  const res = installMainHook(env.electron, nativeDict, {
+    sidecarPayloadSource: '/* [NAWE-PRELOAD-ENGINE-BEGIN] */window.__naweIsolated=1;/* [NAWE-PRELOAD-ENGINE-END] */',
+  });
+  assert.equal(res.installed, true);
+
+  const built = env.electron.Menu.buildFromTemplate([
+    { id: 'rename', label: 'Rename' },
+    { id: 'unpin', label: 'Unpin' },
+    { id: 'mark-read', label: 'Mark Unread' },
+    {
+      id: 'copy',
+      type: 'submenu',
+      label: 'Copy',
+      submenu: [
+        { id: 'copy-0', label: 'Conversation Name' },
+        { id: 'copy-1', label: 'Conversation ID' },
+        { id: 'copy-2', label: 'Workspace Name' },
+        { id: 'copy-3', label: 'Project Name' },
+      ],
+    },
+    {
+      id: 'split',
+      type: 'submenu',
+      label: 'Split',
+      submenu: [
+        { id: 'split-0', label: 'Split Right' },
+        { id: 'split-1', label: 'Split Down' },
+        { id: 'split-2', label: 'Replace with New' },
+        { id: 'split-3', label: 'Remove from Split' },
+      ],
+    },
+    { id: 'archive', label: 'Archive' },
+    { id: 'delete', label: 'Delete' },
+    { id: 'copy-proj', label: 'Copy Project Name' },
+    { id: 'proj-settings', label: 'Project Settings' },
+    { id: 'proj-delete', label: 'Delete Project' },
+  ]);
+
+  built.popup({});
+  assert.equal(env.popupCalls.length, 1);
+  const shown = env.popupCalls[0].menu;
+  assert.equal(shown, built);
+  assert.deepEqual(
+    shown.items.map((i) => [i.id, i.label]),
+    [
+      ['rename', '重命名'],
+      ['unpin', '取消置顶'],
+      ['mark-read', '标为未读'],
+      ['copy', '复制'],
+      ['split', '拆分视图'],
+      ['archive', '归档'],
+      ['delete', '删除'],
+      ['copy-proj', '复制项目名称'],
+      ['proj-settings', '项目设置'],
+      ['proj-delete', '删除项目 (Delete Project)'],
+    ]
+  );
+  assert.deepEqual(
+    shown.items[3].submenu.items.map((i) => i.label),
+    ['对话名称', '对话 ID', '工作区名称', '项目名称']
+  );
+  assert.deepEqual(
+    shown.items[4].submenu.items.map((i) => i.label),
+    ['向右拆分', '向下拆分', '替换为新对话', '移出拆分视图']
+  );
+
+  // dialog 与 plugin:// 注入在 Menu.prototype.popup 不可写时依然全部可用
+  await env.electron.dialog.showMessageBox({ title: 'Check for Updates', buttons: ['OK'] });
+  assert.equal(env.dialogCalls[0].opts.title, '检查更新');
+  assert.equal((appListeners.get('web-contents-created') || []).length, 1);
+});
+

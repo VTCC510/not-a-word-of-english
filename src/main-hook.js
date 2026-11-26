@@ -341,9 +341,11 @@ function menuToLocalizedTemplate(menuInstance, translator, { isRoot = false } = 
     if (item.id) entry.id = item.id;
     if (item.sublabel) entry.sublabel = translator.translateMenuLabel(item.sublabel);
     if (item.toolTip) entry.toolTip = translator.translateMenuLabel(item.toolTip);
-    if (item.accelerator) entry.accelerator = item.accelerator;
-    if (item.acceleratorWorksWhenHidden !== undefined) {
-      entry.acceleratorWorksWhenHidden = item.acceleratorWorksWhenHidden;
+    if (item.accelerator) {
+      entry.accelerator = item.accelerator;
+      if (item.acceleratorWorksWhenHidden !== undefined) {
+        entry.acceleratorWorksWhenHidden = item.acceleratorWorksWhenHidden;
+      }
     }
     if (item.type === 'checkbox' || item.type === 'radio') {
       entry.type = item.type;
@@ -352,6 +354,7 @@ function menuToLocalizedTemplate(menuInstance, translator, { isRoot = false } = 
 
     if (item.submenu && Array.isArray(item.submenu.items)) {
       // 有子菜单的父级项：递归克隆子菜单，避免传顶层 role 导致覆盖自定义子项
+      entry.type = 'submenu';
       entry.submenu = menuToLocalizedTemplate(item.submenu, translator, { isRoot: false });
     } else {
       const roleLower = typeof item.role === 'string' ? item.role.toLowerCase() : '';
@@ -393,6 +396,189 @@ function menuToLocalizedTemplate(menuInstance, translator, { isRoot = false } = 
   }
 
   return template;
+}
+
+const APP_MENU_BAR_LABELS = new Set(['file', 'edit', 'view', 'window', 'help', 'antigravity']);
+
+function safeOverride(target, key, value) {
+  if (!target || (typeof target !== 'object' && typeof target !== 'function')) return false;
+  try {
+    target[key] = value;
+    if (target[key] === value) return true;
+  } catch (_) {}
+  try {
+    Object.defineProperty(target, key, {
+      value,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+    return target[key] === value;
+  } catch (_) {
+    return false;
+  }
+}
+
+function isAppMenuBarTemplate(template) {
+  if (!Array.isArray(template) || template.length === 0) return false;
+  for (const item of template) {
+    if (!item || typeof item !== 'object') continue;
+    if (item.id && PRESERVE_CLICK_LABEL_IDS.has(item.id)) return true;
+    const labelClean =
+      typeof item.label === 'string' ? item.label.replace(/&([A-Za-z0-9])/g, '$1').trim().toLowerCase() : '';
+    if (Array.isArray(item.submenu) && labelClean && APP_MENU_BAR_LABELS.has(labelClean)) {
+      return true;
+    }
+    if (Array.isArray(item.submenu) && isAppMenuBarTemplate(item.submenu)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 递归翻译传入 Menu.buildFromTemplate 的菜单模板对象数组，绝不修改 id/role/click/accelerator 等业务字段。
+ */
+function translateMenuTemplate(template, translator) {
+  if (!Array.isArray(template) || !translator) return template;
+  return template.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    if (item.type === 'separator') return { ...item };
+
+    const next = { ...item };
+    const roleLower = typeof item.role === 'string' ? item.role.toLowerCase() : '';
+    if (typeof item.label === 'string' && item.label) {
+      next.label = translator.translateMenuLabel(item.label);
+    } else if (roleLower && ROLE_DEFAULT_LABELS[roleLower]) {
+      next.label = translator.translateMenuLabel(ROLE_DEFAULT_LABELS[roleLower]);
+    }
+    if (typeof item.sublabel === 'string' && item.sublabel) {
+      next.sublabel = translator.translateMenuLabel(item.sublabel);
+    }
+    if (typeof item.toolTip === 'string' && item.toolTip) {
+      next.toolTip = translator.translateMenuLabel(item.toolTip);
+    }
+    if (Array.isArray(item.submenu)) {
+      next.submenu = translateMenuTemplate(item.submenu, translator);
+    }
+    return next;
+  });
+}
+
+/**
+ * 递归翻译渲染进程通过 IPC 传入的右键菜单原始对象数组，绝不修改 item.id 等回调标识。
+ */
+function translateContextMenuItems(items, translator) {
+  if (!Array.isArray(items) || !translator) return items;
+  return items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const next = { ...item };
+    if (typeof next.label === 'string' && next.label) {
+      next.label = translator.translateMenuLabel(next.label);
+    }
+    if (typeof next.sublabel === 'string' && next.sublabel) {
+      next.sublabel = translator.translateMenuLabel(next.sublabel);
+    }
+    if (typeof next.toolTip === 'string' && next.toolTip) {
+      next.toolTip = translator.translateMenuLabel(next.toolTip);
+    }
+    if (Array.isArray(next.submenu)) {
+      next.submenu = translateContextMenuItems(next.submenu, translator);
+    }
+    return next;
+  });
+}
+
+function hasTranslatableMenuItem(menuInstance, translator) {
+  const items = Array.isArray(menuInstance && menuInstance.items) ? menuInstance.items : [];
+  for (const item of items) {
+    if (!item || item.type === 'separator') continue;
+    const roleLower = typeof item.role === 'string' ? item.role.toLowerCase() : '';
+    const origLabel =
+      typeof item.label === 'string' && item.label
+        ? item.label
+        : ROLE_DEFAULT_LABELS[roleLower] || '';
+    if (origLabel && !/[\u4e00-\u9fa5]/.test(origLabel) && translator.translateMenuLabel(origLabel) !== origLabel) {
+      return true;
+    }
+    if (
+      typeof item.sublabel === 'string' &&
+      item.sublabel &&
+      !/[\u4e00-\u9fa5]/.test(item.sublabel) &&
+      translator.translateMenuLabel(item.sublabel) !== item.sublabel
+    ) {
+      return true;
+    }
+    if (
+      typeof item.toolTip === 'string' &&
+      item.toolTip &&
+      !/[\u4e00-\u9fa5]/.test(item.toolTip) &&
+      translator.translateMenuLabel(item.toolTip) !== item.toolTip
+    ) {
+      return true;
+    }
+    if (item.submenu && Array.isArray(item.submenu.items) && hasTranslatableMenuItem(item.submenu, translator)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function installPluginSidecarInjector(electron, options = {}) {
+  if (!electron || !electron.app || typeof electron.app.on !== 'function') {
+    return { active: false };
+  }
+
+  let cachedPayload;
+  function getPayload() {
+    if (cachedPayload !== undefined) return cachedPayload;
+    if (typeof options.sidecarPayloadSource === 'string') {
+      cachedPayload = options.sidecarPayloadSource;
+      return cachedPayload;
+    }
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const preloadPath = path.join(__dirname, 'preload.js');
+      const raw = fs.readFileSync(preloadPath, 'utf8');
+      const beginMarker = '/* [NAWE-PRELOAD-ENGINE-BEGIN] */';
+      const endMarker = '/* [NAWE-PRELOAD-ENGINE-END] */';
+      const startIdx = raw.indexOf(beginMarker);
+      const endIdx = raw.indexOf(endMarker, startIdx + beginMarker.length);
+      if (startIdx !== -1 && endIdx !== -1) {
+        cachedPayload = raw.slice(startIdx, endIdx + endMarker.length);
+        return cachedPayload;
+      }
+    } catch (_) {}
+    cachedPayload = '';
+    return cachedPayload;
+  }
+
+  electron.app.on('web-contents-created', (_ev, contents) => {
+    if (!contents || typeof contents.on !== 'function') return;
+    contents.on('did-frame-finish-load', (event, _isMainFrame, frameProcessId, frameRoutingId) => {
+      try {
+        const frame =
+          (event && event.frame) ||
+          (electron.webFrameMain && typeof electron.webFrameMain.fromId === 'function'
+            ? electron.webFrameMain.fromId(frameProcessId, frameRoutingId)
+            : null);
+        if (
+          !frame ||
+          typeof frame.url !== 'string' ||
+          !frame.url.startsWith('plugin://') ||
+          typeof frame.executeJavaScript !== 'function'
+        ) {
+          return;
+        }
+        const payload = getPayload();
+        if (!payload) return;
+        Promise.resolve(frame.executeJavaScript(payload, false)).catch(() => {});
+      } catch (_) {}
+    });
+  });
+
+  return { active: true };
 }
 
 /**
@@ -606,157 +792,214 @@ function installMainHook(electron, dict, options = {}) {
       ? electron.dialog.showMessageBox.bind(electron.dialog)
       : null;
 
-  // 1. 代理 Menu.setApplicationMenu / Menu.getApplicationMenu / Menu.prototype.popup
-  if (electron.Menu) {
-    const Menu = electron.Menu;
-    const origSetAppMenu =
-      typeof Menu.setApplicationMenu === 'function' ? Menu.setApplicationMenu.bind(Menu) : null;
-    const origGetAppMenu =
-      typeof Menu.getApplicationMenu === 'function' ? Menu.getApplicationMenu.bind(Menu) : null;
-    const origBuildFromTemplate =
-      typeof Menu.buildFromTemplate === 'function' ? Menu.buildFromTemplate.bind(Menu) : null;
+  let origBuildFromTemplate = null;
 
-    if (origSetAppMenu && origBuildFromTemplate) {
-      Menu.setApplicationMenu = function naweSetApplicationMenu(menu) {
-        if (!menu || localizedMenus.has(menu)) {
-          if (!menu) lastRawAppMenu = null;
-          return origSetAppMenu(menu);
-        }
-        try {
-          lastRawAppMenu = menu;
-          const template = menuToLocalizedTemplate(menu, translator, { isRoot: true });
-          const localized = origBuildFromTemplate(template);
-          localizedMenus.add(localized);
-          bindDynamicLabelSync(menu, localized, translator);
-          return origSetAppMenu(localized);
-        } catch (_) {
-          // 熔断降级：出错立即回退原菜单
-          return origSetAppMenu(menu);
-        }
-      };
-    }
+  // 1. 代理 Menu.buildFromTemplate / Menu.setApplicationMenu / Menu.getApplicationMenu / Menu.prototype.popup
+  try {
+    if (electron.Menu) {
+      const Menu = electron.Menu;
+      const origSetAppMenu =
+        typeof Menu.setApplicationMenu === 'function' ? Menu.setApplicationMenu.bind(Menu) : null;
+      const origGetAppMenu =
+        typeof Menu.getApplicationMenu === 'function' ? Menu.getApplicationMenu.bind(Menu) : null;
+      origBuildFromTemplate =
+        typeof Menu.buildFromTemplate === 'function' ? Menu.buildFromTemplate.bind(Menu) : null;
 
-    if (origGetAppMenu) {
-      Menu.getApplicationMenu = function naweGetApplicationMenu() {
-        return lastRawAppMenu || origGetAppMenu();
-      };
-    }
-
-    if (Menu.prototype && typeof Menu.prototype.popup === 'function' && origBuildFromTemplate) {
-      const origPopup = Menu.prototype.popup;
-      Menu.prototype.popup = function nawePopup(options) {
-        if (localizedMenus.has(this)) {
-          return origPopup.call(this, options);
-        }
-        try {
-          const template = menuToLocalizedTemplate(this, translator, { isRoot: false });
-          const localized = origBuildFromTemplate(template);
-          localizedMenus.add(localized);
-          rawToLocalizedMenu.set(this, localized);
-          return origPopup.call(localized, options);
-        } catch (_) {
-          return origPopup.call(this, options);
-        }
-      };
-
-      if (typeof Menu.prototype.closePopup === 'function') {
-        const origClosePopup = Menu.prototype.closePopup;
-        Menu.prototype.closePopup = function naweClosePopup(browserWindow) {
-          const target = rawToLocalizedMenu.get(this) || this;
-          return origClosePopup.call(target, browserWindow);
-        };
+      if (origBuildFromTemplate) {
+        safeOverride(Menu, 'buildFromTemplate', function naweBuildFromTemplate(template) {
+          if (!Array.isArray(template) || isAppMenuBarTemplate(template)) {
+            return origBuildFromTemplate(template);
+          }
+          try {
+            const localizedTemplate = translateMenuTemplate(template, translator);
+            const menu = origBuildFromTemplate(localizedTemplate);
+            localizedMenus.add(menu);
+            return menu;
+          } catch (_) {
+            return origBuildFromTemplate(template);
+          }
+        });
       }
+
+      if (origSetAppMenu && origBuildFromTemplate) {
+        safeOverride(Menu, 'setApplicationMenu', function naweSetApplicationMenu(menu) {
+          if (!menu || localizedMenus.has(menu)) {
+            if (!menu) lastRawAppMenu = null;
+            return origSetAppMenu(menu);
+          }
+          try {
+            lastRawAppMenu = menu;
+            const template = menuToLocalizedTemplate(menu, translator, { isRoot: true });
+            const localized = origBuildFromTemplate(template);
+            localizedMenus.add(localized);
+            bindDynamicLabelSync(menu, localized, translator);
+            return origSetAppMenu(localized);
+          } catch (_) {
+            // 熔断降级：出错立即回退原菜单
+            return origSetAppMenu(menu);
+          }
+        });
+      }
+
+      if (origGetAppMenu) {
+        safeOverride(Menu, 'getApplicationMenu', function naweGetApplicationMenu() {
+          return lastRawAppMenu || origGetAppMenu();
+        });
+      }
+
+      try {
+        if (Menu.prototype && typeof Menu.prototype.popup === 'function' && origBuildFromTemplate) {
+          const origPopup = Menu.prototype.popup;
+          safeOverride(Menu.prototype, 'popup', function nawePopup(options) {
+            if (localizedMenus.has(this) || !hasTranslatableMenuItem(this, translator)) {
+              return origPopup.call(this, options);
+            }
+            try {
+              const template = menuToLocalizedTemplate(this, translator, { isRoot: false });
+              const localized = origBuildFromTemplate(template);
+              localizedMenus.add(localized);
+              rawToLocalizedMenu.set(this, localized);
+              return origPopup.call(localized, options);
+            } catch (_) {
+              return origPopup.call(this, options);
+            }
+          });
+
+          if (typeof Menu.prototype.closePopup === 'function') {
+            const origClosePopup = Menu.prototype.closePopup;
+            safeOverride(Menu.prototype, 'closePopup', function naweClosePopup(browserWindow) {
+              const target = rawToLocalizedMenu.get(this) || this;
+              return origClosePopup.call(target, browserWindow);
+            });
+          }
+        }
+      } catch (_) {}
     }
-  }
+  } catch (_) {}
+
+  // 1.5 代理 ipcMain.handle('window:show-context-menu')，在建菜单前直接翻译原始 items（保留 id 不变）
+  try {
+    if (electron.ipcMain && typeof electron.ipcMain.handle === 'function') {
+      const origHandle = electron.ipcMain.handle.bind(electron.ipcMain);
+      safeOverride(electron.ipcMain, 'handle', function naweIpcHandle(channel, listener) {
+        if (channel === 'window:show-context-menu' && typeof listener === 'function') {
+          return origHandle(channel, (event, items, ...rest) => {
+            let localizedItems = items;
+            try {
+              localizedItems = translateContextMenuItems(items, translator);
+            } catch (_) {
+              localizedItems = items;
+            }
+            return listener(event, localizedItems, ...rest);
+          });
+        }
+        return origHandle(channel, listener);
+      });
+    }
+  } catch (_) {}
+
+  // 1.6 为 plugin:// 扩展侧边面板（如 Swarm Board）安全注入本地渲染翻译引擎
+  try {
+    installPluginSidecarInjector(electron, options);
+  } catch (_) {}
 
   // 2. 代理 Tray.prototype.setContextMenu（覆盖托盘右键与动态智能体计数）
-  if (electron.Tray && electron.Tray.prototype && electron.Menu && typeof electron.Menu.buildFromTemplate === 'function') {
-    const origSetContextMenu = electron.Tray.prototype.setContextMenu;
-    if (typeof origSetContextMenu === 'function') {
-      electron.Tray.prototype.setContextMenu = function naweSetContextMenu(menu) {
-        if (!menu || localizedMenus.has(menu)) {
-          return origSetContextMenu.call(this, menu);
+  try {
+    if (electron.Tray && electron.Tray.prototype && origBuildFromTemplate) {
+      const origSetContextMenu = electron.Tray.prototype.setContextMenu;
+      if (typeof origSetContextMenu === 'function') {
+        safeOverride(electron.Tray.prototype, 'setContextMenu', function naweSetContextMenu(menu) {
+          if (!menu || (localizedMenus.has(menu) && !hasTranslatableMenuItem(menu, translator))) {
+            return origSetContextMenu.call(this, menu);
+          }
+          try {
+            const template = menuToLocalizedTemplate(menu, translator, { isRoot: false });
+            const localized = origBuildFromTemplate(template);
+            localizedMenus.add(localized);
+            return origSetContextMenu.call(this, localized);
+          } catch (_) {
+            return origSetContextMenu.call(this, menu);
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
+  // 3. 代理 dialog.showMessageBox / showMessageBoxSync（覆盖退出确认、更新提示、WSL 提示等）
+  try {
+    if (electron.dialog) {
+      const dialog = electron.dialog;
+
+      if (typeof dialog.showMessageBox === 'function') {
+        const origShow = dialog.showMessageBox.bind(dialog);
+        safeOverride(dialog, 'showMessageBox', function naweShowMessageBox(arg1, arg2) {
+          try {
+            if (arg2 !== undefined) {
+              return origShow(arg1, translator.translateDialogOptions(arg2));
+            }
+            return origShow(translator.translateDialogOptions(arg1));
+          } catch (_) {
+            return arg2 !== undefined ? origShow(arg1, arg2) : origShow(arg1);
+          }
+        });
+      }
+
+      if (typeof dialog.showMessageBoxSync === 'function') {
+        const origShowSync = dialog.showMessageBoxSync.bind(dialog);
+        safeOverride(dialog, 'showMessageBoxSync', function naweShowMessageBoxSync(arg1, arg2) {
+          try {
+            if (arg2 !== undefined) {
+              return origShowSync(arg1, translator.translateDialogOptions(arg2));
+            }
+            return origShowSync(translator.translateDialogOptions(arg1));
+          } catch (_) {
+            return arg2 !== undefined ? origShowSync(arg1, arg2) : origShowSync(arg1);
+          }
+        });
+      }
+
+      for (const methodName of ['showOpenDialog', 'showOpenDialogSync', 'showSaveDialog', 'showSaveDialogSync']) {
+        if (typeof dialog[methodName] === 'function') {
+          const origFn = dialog[methodName].bind(dialog);
+          safeOverride(dialog, methodName, function naweFileDialog(arg1, arg2) {
+            try {
+              if (arg2 !== undefined) {
+                return origFn(arg1, translator.translateFileDialogOptions(arg2));
+              }
+              return origFn(translator.translateFileDialogOptions(arg1));
+            } catch (_) {
+              return arg2 !== undefined ? origFn(arg1, arg2) : origFn(arg1);
+            }
+          });
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 4. 兼容 macOS Dock 菜单（如存在）
+  try {
+    if (electron.app && electron.app.dock && typeof electron.app.dock.setMenu === 'function' && origBuildFromTemplate) {
+      const origDockSetMenu = electron.app.dock.setMenu.bind(electron.app.dock);
+      safeOverride(electron.app.dock, 'setMenu', function naweDockSetMenu(menu) {
+        if (!menu || (localizedMenus.has(menu) && !hasTranslatableMenuItem(menu, translator))) {
+          return origDockSetMenu(menu);
         }
         try {
           const template = menuToLocalizedTemplate(menu, translator, { isRoot: false });
-          const localized = electron.Menu.buildFromTemplate(template);
+          const localized = origBuildFromTemplate(template);
           localizedMenus.add(localized);
-          return origSetContextMenu.call(this, localized);
+          return origDockSetMenu(localized);
         } catch (_) {
-          return origSetContextMenu.call(this, menu);
+          return origDockSetMenu(menu);
         }
-      };
+      });
     }
-  }
+  } catch (_) {}
 
-  // 3. 代理 dialog.showMessageBox / showMessageBoxSync（覆盖退出确认、更新提示、WSL 提示等）
-  if (electron.dialog) {
-    const dialog = electron.dialog;
-
-    if (typeof dialog.showMessageBox === 'function') {
-      const origShow = dialog.showMessageBox.bind(dialog);
-      dialog.showMessageBox = function naweShowMessageBox(arg1, arg2) {
-        try {
-          if (arg2 !== undefined) {
-            return origShow(arg1, translator.translateDialogOptions(arg2));
-          }
-          return origShow(translator.translateDialogOptions(arg1));
-        } catch (_) {
-          return arg2 !== undefined ? origShow(arg1, arg2) : origShow(arg1);
-        }
-      };
-    }
-
-    if (typeof dialog.showMessageBoxSync === 'function') {
-      const origShowSync = dialog.showMessageBoxSync.bind(dialog);
-      dialog.showMessageBoxSync = function naweShowMessageBoxSync(arg1, arg2) {
-        try {
-          if (arg2 !== undefined) {
-            return origShowSync(arg1, translator.translateDialogOptions(arg2));
-          }
-          return origShowSync(translator.translateDialogOptions(arg1));
-        } catch (_) {
-          return arg2 !== undefined ? origShowSync(arg1, arg2) : origShowSync(arg1);
-        }
-      };
-    }
-
-    for (const methodName of ['showOpenDialog', 'showOpenDialogSync', 'showSaveDialog', 'showSaveDialogSync']) {
-      if (typeof dialog[methodName] === 'function') {
-        const origFn = dialog[methodName].bind(dialog);
-        dialog[methodName] = function naweFileDialog(arg1, arg2) {
-          try {
-            if (arg2 !== undefined) {
-              return origFn(arg1, translator.translateFileDialogOptions(arg2));
-            }
-            return origFn(translator.translateFileDialogOptions(arg1));
-          } catch (_) {
-            return arg2 !== undefined ? origFn(arg1, arg2) : origFn(arg1);
-          }
-        };
-      }
-    }
-  }
-
-  // 4. 兼容 macOS Dock 菜单（如存在）
-  if (electron.app && electron.app.dock && typeof electron.app.dock.setMenu === 'function' && electron.Menu && typeof electron.Menu.buildFromTemplate === 'function') {
-    const origDockSetMenu = electron.app.dock.setMenu.bind(electron.app.dock);
-    electron.app.dock.setMenu = function naweDockSetMenu(menu) {
-      if (!menu || localizedMenus.has(menu)) {
-        return origDockSetMenu(menu);
-      }
-      try {
-        const template = menuToLocalizedTemplate(menu, translator, { isRoot: false });
-        const localized = electron.Menu.buildFromTemplate(template);
-        localizedMenus.add(localized);
-        return origDockSetMenu(localized);
-      } catch (_) {
-        return origDockSetMenu(menu);
-      }
-    };
-  }
-
-  const swapWatcher = startPendingSwapWatcher(electron, rawShowMessageBox, options);
+  let swapWatcher = { active: false };
+  try {
+    swapWatcher = startPendingSwapWatcher(electron, rawShowMessageBox, options);
+  } catch (_) {}
 
   try {
     Object.defineProperty(electron, HOOK_FLAG, { value: true, enumerable: false });
@@ -768,5 +1011,7 @@ function installMainHook(electron, dict, options = {}) {
 module.exports = {
   createNativeTranslator,
   menuToLocalizedTemplate,
+  translateMenuTemplate,
+  translateContextMenuItems,
   installMainHook,
 };

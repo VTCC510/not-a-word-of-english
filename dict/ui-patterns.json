@@ -2024,6 +2024,438 @@
       "pattern": "^Failed\\s+to\\s+delete\\s+workspace:\\s*(.+)$",
       "flags": "i",
       "replacement": "删除工作区失败：$1"
+    },
+    {
+      "keywords": [
+        "updated"
+      ],
+      "pattern": "^Updated\\s+(.+)$",
+      "flags": "",
+      "replacement": "更新于 $1"
+    },
+    {
+      "keywords": [
+        "no",
+        "automations",
+        "match"
+      ],
+      "pattern": "^No\\s+automations\\s+match\\s+[“\"](.+?)[”\"]\\.?$",
+      "flags": "i",
+      "replacement": "没有与“$1”匹配的自动化任务。"
+    },
+    {
+      "keywords": [
+        "no",
+        "match"
+      ],
+      "pattern": "^No\\s+(plugins|skills|rules|items)\\s+match\\s+[“\"](.+?)[”\"]\\.?$",
+      "flags": "i",
+      "replacement": "没有与“$2”匹配的匹配项。"
+    },
+    {
+      "keywords": [
+        "automation",
+        "already",
+        "exists"
+      ],
+      "pattern": "^An\\s+automation\\s+with\\s+the\\s+ID\\s+[“\"](.+?)[”\"]\\s+already\\s+exists\\.?$",
+      "flags": "i",
+      "replacement": "ID 为“$1”的自动化任务已存在。"
+    },
+    {
+      "keywords": [
+        "daily",
+        "at"
+      ],
+      "pattern": "^Daily\\s+at\\s+(.+)$",
+      "flags": "i",
+      "replacement": "每天 $1"
+    },
+    {
+      "keywords": [
+        "weekdays",
+        "at"
+      ],
+      "pattern": "^Weekdays\\s+at\\s+(.+)$",
+      "flags": "i",
+      "replacement": "工作日 $1"
+    },
+    {
+      "keywords": [
+        "weekends",
+        "at"
+      ],
+      "pattern": "^Weekends\\s+at\\s+(.+)$",
+      "flags": "i",
+      "replacement": "周末 $1"
+    },
+    {
+      "keywords": [
+        "monthly",
+        "on",
+        "the",
+        "at"
+      ],
+      "pattern": "^Monthly\\s+on\\s+the\\s+(\\d+)(?:st|nd|rd|th)\\s+at\\s+(.+)$",
+      "flags": "i",
+      "replacement": "每月 $1 日 $2"
+    },
+    {
+      "keywords": [
+        "every",
+        "minutes"
+      ],
+      "pattern": "^Every\\s+(\\d+)\\s+minutes(.*)$",
+      "flags": "i",
+      "replacement": "每 $1 分钟$2"
+    },
+    {
+      "keywords": [
+        "every",
+        "hours"
+      ],
+      "pattern": "^Every\\s+(\\d+)\\s+hours(.*)$",
+      "flags": "i",
+      "replacement": "每 $1 小时$2"
+    },
+    {
+      "keywords": [
+        "every",
+        "hour",
+        "at"
+      ],
+      "pattern": "^Every\\s+hour\\s+at\\s+:(\\d+)(.*)$",
+      "flags": "i",
+      "replacement": "每小时第 $1 分$2"
+    },
+    {
+      "keywords": [
+        "st",
+        "nd",
+        "rd",
+        "th"
+      ],
+      "pattern": "^(\\d{1,2})(?:st|nd|rd|th)$",
+      "flags": "i",
+      "replacement": "$1 日"
+    },
+    {
+      "keywords": [
+        "connect",
+        "account",
+        "automations"
+      ],
+      "pattern": "^Connect\\s+an\\s+account\\s+for\\s+(.+?)\\s+so\\s+the\\s+agent\\s+can\\s+run\\s+automations\\.$",
+      "flags": "i",
+      "replacement": "请为 $1 连接账号以便智能体运行自动化任务。"
+    },
+    {
+      "keywords": [
+        "created",
+        "automation"
+      ],
+      "pattern": "^Created\\s+automation\\s+\"([^\"]+)\"\\.?$",
+      "flags": "i",
+      "replacement": "已创建自动化任务“$1”。"
+    },
+    {
+      "keywords": [
+        "restarted"
+      ],
+      "pattern": "^Restarted\\s+\"([^\"]+)\"\\.?$",
+      "flags": "i",
+      "replacement": "已重启“$1”。"
+    },
+    {
+      "keywords": [
+        "deleted"
+      ],
+      "pattern": "^Deleted\\s+\"([^\"]+)\"\\.?$",
+      "flags": "i",
+      "replacement": "已删除“$1”。"
+    },
+    {
+      "keywords": [
+        "failed",
+        "update"
+      ],
+      "pattern": "^Failed\\s+to\\s+update\\s+\"([^\"]+)\"\\.?$",
+      "flags": "i",
+      "replacement": "更新“$1”失败。"
+    },
+    {
+      "keywords": [
+        "failed",
+        "delete"
+      ],
+      "pattern": "^Failed\\s+to\\s+delete\\s+\"([^\"]+)\"\\.?$",
+      "flags": "i",
+      "replacement": "删除“$1”失败。"
+    },
+    {
+      "keywords": [
+        "run",
+        "now"
+      ],
+      "pattern": "^Run\\s+(.+?)\\s+now$",
+      "flags": "i",
+      "replacement": "立即运行 $1"
+    },
+    {
+      "keywords": [
+        "required",
+        "to"
+      ],
+      "pattern": "^Required\\s+to\\s+(save|create):\\s*(.+)$",
+      "flags": "i",
+      "replacement": "保存/创建前缺少必填项：$2"
+    },
+    {
+      "keywords": [
+        "waiting",
+        "input"
+      ],
+      "pattern": "^Waiting\\s+for\\s+your\\s+input:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "等待你的输入：$1"
+    },
+    {
+      "keywords": [
+        "running"
+      ],
+      "pattern": "^Running:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "运行中：$1"
+    },
+    {
+      "keywords": [
+        "forked",
+        "from"
+      ],
+      "pattern": "^Forked\\s+from\\s+(.+)$",
+      "flags": "i",
+      "replacement": "派生自 $1"
+    },
+    {
+      "keywords": [
+        "needs",
+        "details",
+        "run"
+      ],
+      "pattern": "^(.+?)\\s+needs\\s+a\\s+few\\s+details\\s+from\\s+you\\s+before\\s+it\\s+can\\s+run\\.$",
+      "flags": "i",
+      "replacement": "运行 $1 前需要你补充几项配置信息。"
+    },
+    {
+      "keywords": [
+        "set",
+        "up"
+      ],
+      "pattern": "^Set\\s+up\\s+(.+)$",
+      "flags": "",
+      "replacement": "配置 $1"
+    },
+    {
+      "keywords": [
+        "review",
+        "permissions",
+        "for"
+      ],
+      "pattern": "^Review\\s+permissions\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "审核 $1 的权限"
+    },
+    {
+      "keywords": [
+        "where",
+        "agent",
+        "runs",
+        "current"
+      ],
+      "pattern": "^Where\\s+the\\s+agent\\s+runs,\\s+current:\\s*(.+)$",
+      "flags": "i",
+      "replacement": "智能体运行位置（当前：$1）"
+    },
+    {
+      "keywords": [
+        "managed",
+        "by",
+        "the"
+      ],
+      "pattern": "^Managed\\s+by\\s+the\\s+(.+?)\\s+(automation|plugin)$",
+      "flags": "i",
+      "replacement": "由「$1」托管"
+    },
+    {
+      "keywords": [
+        "word",
+        "wrap"
+      ],
+      "pattern": "^(Enable|Disable|Toggle)\\s+Word\\s+Wrap\\s*\\(([^)]+)\\)$",
+      "flags": "i",
+      "replacement": "切换自动换行（$2）"
+    },
+    {
+      "keywords": [
+        "all",
+        "changes",
+        "since"
+      ],
+      "pattern": "^All\\s+changes\\s+since\\s+(.+)$",
+      "flags": "",
+      "replacement": "自 $1 以来的所有变更"
+    },
+    {
+      "keywords": [
+        "committed",
+        "to"
+      ],
+      "pattern": "^Committed\\s+to\\s+(.+)\\.$",
+      "flags": "",
+      "replacement": "已提交至 $1。"
+    },
+    {
+      "keywords": [
+        "push",
+        "to"
+      ],
+      "pattern": "^Push\\s+(\\d+)\\s+commits?\\s+to\\s+(.+)$",
+      "flags": "",
+      "replacement": "推送 $1 个提交至 $2"
+    },
+    {
+      "keywords": [
+        "publish",
+        "origin"
+      ],
+      "pattern": "^Publish\\s+(.+)\\s+to\\s+origin$",
+      "flags": "",
+      "replacement": "将 $1 发布到 origin"
+    },
+    {
+      "keywords": [
+        "pushed",
+        "to"
+      ],
+      "pattern": "^Pushed\\s+(\\d+)\\s+commits?\\s+to\\s+(.+)\\.$",
+      "flags": "",
+      "replacement": "已推送 $1 个提交至 $2。"
+    },
+    {
+      "keywords": [
+        "pushed",
+        "to"
+      ],
+      "pattern": "^Pushed\\s+to\\s+(.+)\\.$",
+      "flags": "",
+      "replacement": "已推送至 $1。"
+    },
+    {
+      "keywords": [
+        "published",
+        "origin"
+      ],
+      "pattern": "^Published\\s+(.+)\\s+to\\s+origin\\.$",
+      "flags": "",
+      "replacement": "已将 $1 发布到 origin。"
+    },
+    {
+      "keywords": [
+        "of"
+      ],
+      "pattern": "^(\\d+)\\s+of\\s+(\\d+\\+?)$",
+      "flags": "",
+      "replacement": "第 $1 / $2 项"
+    },
+    {
+      "keywords": [
+        "loading",
+        "earlier",
+        "older"
+      ],
+      "pattern": "^Loading\\s+earlier\\s+posts…\\s*\\((\\d+)\\s+older\\)$",
+      "flags": "",
+      "replacement": "正在加载更早的动态…（还有 $1 条）"
+    },
+    {
+      "keywords": [
+        "show",
+        "earlier",
+        "older"
+      ],
+      "pattern": "^Show\\s+(\\d+)\\s+earlier\\s+posts?\\s*\\((\\d+)\\s+older\\)$",
+      "flags": "",
+      "replacement": "显示更早的 $1 条动态（共剩余 $2 条）"
+    },
+    {
+      "keywords": [
+        "earlier",
+        "loaded"
+      ],
+      "pattern": "^(\\d+)\\s+earlier\\s+posts?\\s+could\\s+not\\s+be\\s+loaded\\.$",
+      "flags": "",
+      "replacement": "有 $1 条更早的动态未能加载。"
+    },
+    {
+      "keywords": [
+        "post",
+        "found"
+      ],
+      "pattern": "^Post\\s+#(\\d+)\\s+was\\s+not\\s+found$",
+      "flags": "",
+      "replacement": "未找到动态 #$1"
+    },
+    {
+      "keywords": [
+        "exporting"
+      ],
+      "pattern": "^Exporting\\s+(\\d+)%$",
+      "flags": "",
+      "replacement": "正在导出 $1%"
+    },
+    {
+      "keywords": [
+        "waiting",
+        "on"
+      ],
+      "pattern": "^Waiting\\s+on\\s+(@[^\\s]+|\\d+)$",
+      "flags": "",
+      "replacement": "正在等待 $1"
+    },
+    {
+      "keywords": [
+        "working",
+        "for"
+      ],
+      "pattern": "^Working\\s+for\\s+(@[^\\s]+)$",
+      "flags": "",
+      "replacement": "正在为 $1 工作"
+    },
+    {
+      "keywords": [
+        "in",
+        "review"
+      ],
+      "pattern": "^(\\d+)\\s+in\\s+review$",
+      "flags": "",
+      "replacement": "$1 项审查中"
+    },
+    {
+      "keywords": [
+        "active"
+      ],
+      "pattern": "^(\\d+)\\s+active$",
+      "flags": "",
+      "replacement": "$1 项活跃"
+    },
+    {
+      "keywords": [
+        "go",
+        "to"
+      ],
+      "pattern": "^Go\\s+to\\s+#(\\d+)(?:\\s*\\(([^)]+)\\))?$",
+      "flags": "",
+      "replacement": "跳转到 #$1"
     }
   ]
 }

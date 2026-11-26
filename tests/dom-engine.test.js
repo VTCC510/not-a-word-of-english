@@ -730,7 +730,7 @@ test('Antigravity 2.34.0 voices, model effort tooltips, settings sections, and u
   assert.equal(voiceName.textContent, '芙拉');
   assert.equal(voiceTone.textContent, '清晰亲切');
   assert.equal(dotBtn.getAttribute('aria-label'), '声线 Fola（第 1 / 9 个）');
-  assert.equal(useBtn.textContent, '使用 芙拉');
+  assert.equal(useBtn.textContent, '使用芙拉');
 
   const t = createDomTranslator(bundle);
   // 全部 9 个内置声线及描述词均完整覆盖
@@ -1237,5 +1237,203 @@ test('Antigravity 2.35.2 in-flight model switching, sidebar display options, Com
     '2 个活跃对话和 1 个已归档对话'
   );
 });
+
+test('Adjacent split text nodes merge cleanly without breaking Use+Voice, Automations UI, screenshots 1-15, and all context menus', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  // 1) 相邻文本节点合并翻译与无损还原（根治 "No ", "automations", " yet" -> "否 自动化 yet"）
+  const emptyAutoP = new MockElement('p');
+  emptyAutoP.appendChild(new MockText('No '));
+  emptyAutoP.appendChild(new MockText('automations'));
+  emptyAutoP.appendChild(new MockText(' yet'));
+
+  const matchAutoP = new MockElement('p');
+  matchAutoP.appendChild(new MockText('No '));
+  matchAutoP.appendChild(new MockText('automations'));
+  matchAutoP.appendChild(new MockText(' match “'));
+  matchAutoP.appendChild(new MockText('daily'));
+  matchAutoP.appendChild(new MockText('”.'));
+
+  const useVoiceBtn = new MockElement('button');
+  useVoiceBtn.appendChild(new MockText('Use '));
+  useVoiceBtn.appendChild(new MockText('Fola'));
+
+  body.appendChild(emptyAutoP);
+  body.appendChild(matchAutoP);
+  body.appendChild(useVoiceBtn);
+
+  const { controller } = installDomEngine(dom.win, bundle);
+
+  assert.equal(emptyAutoP.textContent, '暂无自动化任务');
+  assert.equal(matchAutoP.textContent, '没有与“daily”匹配的自动化任务。');
+  assert.equal(useVoiceBtn.textContent, '使用芙拉');
+
+  controller.setMode('en');
+  assert.equal(emptyAutoP.childNodes.map((n) => n.nodeValue).join(''), 'No automations yet');
+  assert.equal(emptyAutoP.childNodes[0].nodeValue, 'No ');
+  assert.equal(emptyAutoP.childNodes[1].nodeValue, 'automations');
+  assert.equal(emptyAutoP.childNodes[2].nodeValue, ' yet');
+  assert.equal(matchAutoP.childNodes.map((n) => n.nodeValue).join(''), 'No automations match “daily”.');
+  assert.equal(useVoiceBtn.textContent, 'Use Fola');
+
+  controller.setMode('zh');
+  assert.equal(emptyAutoP.textContent, '暂无自动化任务');
+  assert.equal(matchAutoP.textContent, '没有与“daily”匹配的自动化任务。');
+  assert.equal(useVoiceBtn.textContent, '使用芙拉');
+
+  const t = createDomTranslator(bundle);
+
+  // 2) 自动化表单与定时选择器
+  assert.equal(t.translateText('Create with Prompt').translated, '用提示词创建');
+  assert.equal(
+    t.translateText('Uses your local files and tools. Schedules only.').translated,
+    '使用你的本地文件与工具，仅支持定时触发。'
+  );
+  assert.equal(t.translateText('Trigger').translated, '触发方式');
+  assert.equal(t.translateText('Scheduled').translated, '定时触发');
+  assert.equal(t.translateText('Every day').translated, '每天');
+  assert.equal(t.translateText('at').translated, '于');
+  assert.equal(t.translateText('Instructions').translated, '执行指令');
+  assert.equal(t.translateText('Daily at 9:00 AM').translated, '每天 9:00 AM');
+
+  // 3) 15 张截图核心项
+  assert.equal(t.translateText('Open in Remote Control').translated, '在远程控制中打开');
+  assert.equal(t.translateText('Search for conversations...').translated, '搜索对话...');
+  assert.equal(t.translateText('Browse').translated, '浏览');
+  assert.equal(t.translateText('Browse rules').translated, '浏览规则');
+  assert.equal(t.translateText('Folder').translated, '文件夹');
+  assert.equal(t.translateText('Mentions').translated, '提及');
+  assert.equal(t.translateText('Drive').translated, 'Google 云端硬盘');
+  assert.equal(t.translateText('Set up').translated, '去配置');
+  assert.equal(t.translateText('No folders added yet.').translated, '尚未添加任何文件夹。');
+  assert.equal(t.translateText('Edit Conversation Title').translated, '编辑对话标题');
+  assert.equal(t.translateText('Insert into main conversation').translated, '插入到主对话');
+  assert.equal(t.translateText('Runs on this machine').translated, '在本机运行');
+  assert.equal(t.translateText('Runs in a cloud environment').translated, '在云端环境中运行');
+  assert.equal(t.translateText('Updated 16:48').translated, '更新于 16:48');
+  assert.equal(t.translateText('No file changes').translated, '无文件变更');
+  assert.equal(t.translateText('View Split Diff').translated, '并排对比视图');
+  assert.equal(t.translateText('Hide Whitespace Changes').translated, '隐藏空白字符变更');
+  assert.equal(t.translateText('Continue as a New Conversation').translated, '作为新对话继续');
+  assert.equal(t.translateText('Delete Side Question').translated, '删除旁白追问 (Delete Side Question)');
+
+  // 4) 全界面右键菜单与子菜单
+  assert.equal(t.translateText('Open in Side Panel').translated, '在侧边面板中打开');
+  assert.equal(t.translateText('Open In').translated, '打开方式');
+  assert.equal(t.translateText('Save Image').translated, '保存图片');
+  assert.equal(t.translateText('Find References').translated, '查找引用');
+  assert.equal(t.translateText('Copy File Path').translated, '复制文件路径');
+  assert.equal(t.translateText('Edit Shortcut').translated, '编辑快捷键');
+  assert.equal(t.translateText('Keep Open').translated, '保持打开');
+  assert.equal(t.translateText('Pin Tab').translated, '固定标签页');
+  assert.equal(t.translateText('Close Tabs to the Right').translated, '关闭右侧标签页');
+  assert.equal(t.translateText('Fork in Current Workspace').translated, '在当前工作区中派生');
+  assert.equal(t.translateText('Undo to Here').translated, '回滚到此处 (Undo to Here)');
+  assert.equal(t.translateText('Delete Group').translated, '删除分组 (Delete Group)');
+});
+
+test('Cancel is pure Chinese on normal pages and bilingual in high-risk dialogs; Review, Search, Open File, Feedback, Code Block, and plugin:// Swarm UI translate cleanly', () => {
+  // 1) plugin:// origin allowed & subframe suppresses duplicate floating widget
+  assert.equal(isAllowedOrigin({ protocol: 'plugin:', hostname: 'swarm-hash-id' }), true);
+
+  const subDom = createMockDom({ protocol: 'plugin:', hostname: 'swarm-hash-id' });
+  subDom.win.top = { mockParent: true };
+  subDom.win.parent = subDom.win.top;
+  const emptyCard = new subDom.MockElement('section', { id: 'empty' });
+  const emptyTitle = new subDom.MockElement('h2');
+  emptyTitle.appendChild(new subDom.MockText('No swarm in this conversation'));
+  const emptyBody = new subDom.MockElement('p');
+  emptyBody.appendChild(
+    new subDom.MockText(
+      'Swarms started in this conversation appear here automatically, with their board, members and @mention graph. Start one with '
+    )
+  );
+  const swarmCode = new subDom.MockElement('code');
+  swarmCode.appendChild(new subDom.MockText('/swarm'));
+  emptyBody.appendChild(swarmCode);
+  emptyBody.appendChild(new subDom.MockText('.'));
+  const emptyHint = new subDom.MockElement('p');
+  emptyHint.appendChild(new subDom.MockText('Watching for a swarm'));
+  emptyCard.appendChild(emptyTitle);
+  emptyCard.appendChild(emptyBody);
+  emptyCard.appendChild(emptyHint);
+  subDom.body.appendChild(emptyCard);
+
+  installDomEngine(subDom.win, bundle);
+  assert.equal(subDom.doc.getElementById('nawe-floating-root'), null);
+  assert.equal(emptyTitle.textContent, '当前对话中暂无智能体集群');
+  assert.equal(
+    emptyBody.childNodes[0].nodeValue,
+    '在当前对话中启动的智能体集群会自动显示在这里，包含留言板、成员与 @提及关系图。使用以下指令启动： '
+  );
+  assert.equal(swarmCode.textContent, '/swarm');
+  assert.equal(emptyHint.textContent, '正在监听智能体集群');
+
+  // 2) Cancel 按钮在普通页面（如新建自动化表单）只显示“取消”，在高风险删除/沙盒确认框内自动升级为“取消 (Cancel)”
+  const normalDom = createMockDom();
+  const normalForm = new normalDom.MockElement('form');
+  const formTitle = new normalDom.MockElement('h2');
+  formTitle.appendChild(new normalDom.MockText('New automation'));
+  const normalBtn = new normalDom.MockElement('button');
+  normalBtn.appendChild(new normalDom.MockText('Cancel'));
+  normalForm.appendChild(formTitle);
+  normalForm.appendChild(normalBtn);
+  normalDom.body.appendChild(normalForm);
+  installDomEngine(normalDom.win, bundle);
+  assert.equal(normalBtn.textContent, '取消');
+
+  const riskDom = createMockDom();
+  const highRiskDialog = new riskDom.MockElement('div', { role: 'alertdialog' });
+  const riskTitle = new riskDom.MockElement('p');
+  riskTitle.appendChild(new riskDom.MockText('This command will run outside the sandbox'));
+  const riskCancelBtn = new riskDom.MockElement('button');
+  riskCancelBtn.appendChild(new riskDom.MockText('Cancel'));
+  highRiskDialog.appendChild(riskTitle);
+  highRiskDialog.appendChild(riskCancelBtn);
+  riskDom.body.appendChild(highRiskDialog);
+  installDomEngine(riskDom.win, bundle);
+  assert.equal(riskCancelBtn.textContent, '取消 (Cancel)');
+
+  // 3) Review / Search / Open File / Feedback / Code Block 文案与动态正则
+  const t = createDomTranslator(bundle);
+  assert.equal(t.translateText('Uncommitted').translated, '未提交变更');
+  assert.equal(t.translateText('Staged index changes and working tree changes').translated, '暂存区变更与工作区变更');
+  assert.equal(t.translateText('All changes since origin/main').translated, '自 origin/main 以来的所有变更');
+  assert.equal(
+    t.translateText('Files modified by the agent in this conversation').translated,
+    '智能体在本次对话中修改的文件'
+  );
+  assert.equal(t.translateText('Stage and commit all changes').translated, '暂存并提交所有更改');
+  assert.equal(t.translateText('Commit staged changes').translated, '提交已暂存的更改');
+  assert.equal(t.translateText('No commits to push').translated, '没有可推送的提交');
+  assert.equal(t.translateText('Amend').translated, '修正提交');
+
+  assert.equal(t.translateText('Find').translated, '查找');
+  assert.equal(t.translateText('No Results').translated, '无结果');
+  assert.equal(t.translateText('1 of 5').translated, '第 1 / 5 项');
+  assert.equal(t.translateText('Match Case (Aa)').translated, '区分大小写 (Aa)');
+  assert.equal(t.translateText('Match Whole Word (ab)').translated, '全词匹配 (ab)');
+  assert.equal(t.translateText('Use Regular Expression (.*)').translated, '使用正则表达式 (.*)');
+  assert.equal(t.translateText('Previous Match (Shift+Enter)').translated, '上一个匹配项 (Shift+Enter)');
+  assert.equal(t.translateText('Next Match (Enter)').translated, '下一个匹配项 (Enter)');
+  assert.equal(t.translateText('Close (Escape)').translated, '关闭 (Escape)');
+
+  assert.equal(t.translateText('Search for files in the project...').translated, '搜索项目中的文件...');
+  assert.equal(t.translateText('Search file contents...').translated, '搜索文件内容...');
+  assert.equal(t.translateText('Recent files').translated, '最近文件');
+  assert.equal(t.translateText('Recent Files').translated, '最近文件');
+
+  assert.equal(
+    t.translateText(
+      'Please describe the issue in detail. The more actionable your feedback, the quicker our team can address your request. Some helpful information includes:'
+    ).translated,
+    '请详细描述你遇到的问题。反馈越具体可执行，我们的团队就能越快处理你的请求。以下信息会很有帮助：'
+  );
+  assert.equal(t.translateText('At Mention Code Block').translated, '@提及此代码块');
+  assert.equal(t.translateText('Insert in Terminal').translated, '插入到终端');
+  assert.equal(t.translateText('Copy code').translated, '复制代码');
+});
+
 
 

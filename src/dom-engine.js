@@ -43,7 +43,7 @@
     if (!loc) return true;
     const proto = String(loc.protocol || '').toLowerCase();
     const host = String(loc.hostname || '').toLowerCase();
-    if (proto === 'file:' || proto === 'data:' || proto === 'antigravity:' || proto === 'app:' || proto === 'about:') {
+    if (proto === 'file:' || proto === 'data:' || proto === 'antigravity:' || proto === 'app:' || proto === 'about:' || proto === 'plugin:') {
       return true;
     }
     if (proto === 'http:' || proto === 'https:') {
@@ -590,6 +590,13 @@
     let flushScheduled = false;
     const pendingNodes = new Set();
     let widgetSyncUi = null;
+    let isSubframe = false;
+    try {
+      isSubframe = Boolean(win.top && win.top !== win);
+    } catch (_) {
+      isSubframe = true;
+    }
+    let subframeMessageHandler = null;
 
     const hasWeakRef = typeof WeakRef === 'function';
     const wrapRef = (obj) => (hasWeakRef ? new WeakRef(obj) : { deref: () => obj });
@@ -736,6 +743,57 @@
       }
     }
 
+    function processTextRun(parent, runNodes) {
+      if (!enabled || tripped || !parent || !runNodes || runNodes.length === 0) return;
+      if (runNodes.length === 1) {
+        processTextNode(runNodes[0]);
+        return;
+      }
+      const parentTag = String(parent.tagName || '').toUpperCase();
+      if (translator.attributeOnlyTags.has(parentTag)) return;
+
+      const cls = classifyElement(parent);
+      if (cls === 'hard-immune' || cls === 'prose-immune') return;
+
+      let allMatchTrans = true;
+      const origVals = [];
+      for (let i = 0; i < runNodes.length; i++) {
+        const node = runNodes[i];
+        const curVal = node.nodeValue;
+        const rec = textRecords.get(node);
+        if (!rec || curVal !== rec.trans) {
+          allMatchTrans = false;
+        }
+        origVals.push(rec && curVal === rec.trans ? rec.orig : curVal);
+      }
+      if (allMatchTrans) return;
+
+      const combined = origVals.join('');
+      const res = translator.translateText(combined, {
+        isHighRisk: isInHighRiskContext(parent),
+        controlOnly: cls === 'control',
+        precededBySlash: isPrecededBySlash(runNodes[0]),
+        bilingualAll: langMode === 'bilingual',
+      });
+
+      if (res.changed) {
+        for (let i = 0; i < runNodes.length; i++) {
+          const node = runNodes[i];
+          const targetVal = i === 0 ? res.translated : '';
+          textRecords.set(node, { orig: origVals[i], trans: targetVal });
+          trackedTextRefs.add(wrapRef(node));
+          if (node.nodeValue !== targetVal) {
+            node.nodeValue = targetVal;
+          }
+        }
+        return;
+      }
+
+      for (let i = 0; i < runNodes.length; i++) {
+        processTextNode(runNodes[i]);
+      }
+    }
+
     function processAttributes(el) {
       if (!enabled || tripped || !el || el.nodeType !== 1) return;
       const tag = String(el.tagName || '').toUpperCase();
@@ -816,6 +874,25 @@
 
       const children = root.childNodes;
       if (!children) return;
+      if (root.nodeType === 1) {
+        let textRun = [];
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i];
+          if (child && child.nodeType === 3) {
+            textRun.push(child);
+          } else {
+            if (textRun.length > 0) {
+              processTextRun(root, textRun);
+              textRun = [];
+            }
+            walkSubtree(child);
+          }
+        }
+        if (textRun.length > 0) {
+          processTextRun(root, textRun);
+        }
+        return;
+      }
       for (let i = 0; i < children.length; i++) {
         walkSubtree(children[i]);
       }
@@ -872,7 +949,14 @@
         try {
           for (let i = 0; i < mutations.length; i++) {
             const m = mutations[i];
-            if (m.type === 'characterData' || m.type === 'attributes') {
+            if (m.type === 'characterData') {
+              const p = m.target && m.target.parentNode;
+              if (p && p.nodeType === 1 && p.childNodes && p.childNodes.length >= 2) {
+                scheduleNode(p);
+              } else {
+                scheduleNode(m.target);
+              }
+            } else if (m.type === 'attributes') {
               scheduleNode(m.target);
             } else if (m.type === 'childList' && m.addedNodes) {
               for (let j = 0; j < m.addedNodes.length; j++) {
@@ -901,6 +985,12 @@
         try {
           obs.disconnect();
         } catch (_) {}
+      }
+      if (subframeMessageHandler && typeof win.removeEventListener === 'function') {
+        try {
+          win.removeEventListener('message', subframeMessageHandler);
+        } catch (_) {}
+        subframeMessageHandler = null;
       }
     }
 
@@ -989,6 +1079,20 @@
       }
       if (typeof widgetSyncUi === 'function') widgetSyncUi();
 
+      if (!isSubframe && typeof doc.querySelectorAll === 'function') {
+        try {
+          const frames = doc.querySelectorAll('iframe');
+          for (let i = 0; i < frames.length; i++) {
+            const f = frames[i];
+            try {
+              if (f && f.contentWindow && typeof f.contentWindow.postMessage === 'function') {
+                f.contentWindow.postMessage({ __naweSyncMode: nextMode }, '*');
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+
       if (!silent) {
         const modeLabels = {
           zh: '已切换：标准中文（高风险授权保留双语）',
@@ -1009,7 +1113,7 @@
      */
     function mountFloatingLanguageWidget() {
       try {
-        if (win.top && win.top !== win) return null;
+        if (isSubframe || opts.disableWidget === true) return null;
         const mountRoot = doc.documentElement || doc.body;
         if (!mountRoot || typeof doc.createElement !== 'function') return null;
 
@@ -1299,6 +1403,17 @@
     function start() {
       try {
         installShadowHook();
+        if (isSubframe && typeof win.addEventListener === 'function' && !subframeMessageHandler) {
+          subframeMessageHandler = (e) => {
+            try {
+              const mode = e && e.data && e.data.__naweSyncMode;
+              if (e.source === win.parent && (mode === 'zh' || mode === 'bilingual' || mode === 'en')) {
+                setMode(mode, { silent: true });
+              }
+            } catch (_) {}
+          };
+          win.addEventListener('message', subframeMessageHandler);
+        }
         const target = doc.documentElement || doc.body;
         if (!target) return;
         observeRoot(target);

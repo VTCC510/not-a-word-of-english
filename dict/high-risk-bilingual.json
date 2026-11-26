@@ -43,7 +43,6 @@
     "Reject Changes": "拒绝变更 (Reject Changes)",
     "Decline": "拒绝 (Decline)",
     "Block": "阻止 (Block)",
-    "Cancel": "取消 (Cancel)",
     "Skip": "跳过 (Skip)",
     "Abort": "中止 (Abort)",
     "Stop": "停止 (Stop)",
@@ -83,6 +82,9 @@
     "Delete Project": "删除项目 (Delete Project)",
     "Delete Workspace": "删除工作区 (Delete Workspace)",
     "Delete Permanently": "永久删除 (Delete Permanently)",
+    "Delete Side Question": "删除旁白追问 (Delete Side Question)",
+    "Delete Group": "删除分组 (Delete Group)",
+    "Undo to Here": "回滚到此处 (Undo to Here)",
     "This will permanently delete": "警告：此操作将永久删除 (This will permanently delete)",
 
     "Waiting for approval": "等待人工批准 (Waiting for approval)",
