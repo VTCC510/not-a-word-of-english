@@ -234,7 +234,24 @@
     "Open in Browser": "在浏览器中打开",
     "Open in Default Browser": "在默认浏览器中打开",
     "Open in Terminal": "在终端中打开",
-    "Default Browser (Default)": "默认浏览器（默认）"
+    "Default Browser (Default)": "默认浏览器（默认）",
+    "Show in File Explorer": "在文件资源管理器中显示",
+    "Show in File Manager": "在文件管理器中显示",
+    "Good Response": "回答不错",
+    "Bad Response": "回答不佳",
+    "Open in Built-in Browser": "在内置浏览器中打开",
+    "Interrupt Agent": "中断智能体",
+    "Proceed with Plan": "按计划继续",
+    "Manifest Changes": "清单变更",
+    "Fit Mode": "自适应模式",
+    "Thumbnails": "缩略图",
+    "Text Selection": "文本选择",
+    "New Project...": "新建项目...",
+    "New Workspace...": "新建工作区...",
+    "Remove from Project": "从项目中移除",
+    "Remove from Workspace": "从工作区中移除",
+    "Open SSH Host...": "打开 SSH 主机...",
+    "Connect to SSH Host...": "连接到 SSH 主机..."
   },
   "menuPatterns": [
     {
@@ -256,6 +273,16 @@
       "pattern": "^Move\\s+to\\s+(.+)$",
       "flags": "",
       "replacement": "移动到 $1"
+    },
+    {
+      "pattern": "^Remove\\s+from\\s+(.+)$",
+      "flags": "",
+      "replacement": "从 $1 中移除"
+    },
+    {
+      "pattern": "^New\\s+(?!Window\\b|Tab\\b|Conversation\\b|File\\b|Folder\\b|Group\\b)(.+)\\.\\.\\.$",
+      "flags": "",
+      "replacement": "新建 $1..."
     },
     {
       "pattern": "^Open\\s+in\\s+(.+)$",
@@ -310,6 +337,7 @@
       "Open Folder": "打开文件夹",
       "Open File": "打开文件",
       "Save File": "保存文件",
+      "Select SSH Config": "选择 SSH 配置文件",
       "Choose": "选择",
       "Open": "打开",
       "Save": "保存",

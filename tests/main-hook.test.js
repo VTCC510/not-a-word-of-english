@@ -3,7 +3,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const nativeDict = require('../dict/native-menu.json');
-const { createNativeTranslator, installMainHook } = require('../src/main-hook');
+const {
+  createNativeTranslator,
+  createElectronProxy,
+  installModuleLoadHook,
+  installMainHook,
+} = require('../src/main-hook');
 
 /**
  * 极简 Mock Electron 环境（精准模拟 Antigravity 的 Menu / Tray / dialog 行为）。
@@ -639,5 +644,172 @@ test('Menu.buildFromTemplate translates context menus and isolates frozen Menu.p
   await env.electron.dialog.showMessageBox({ title: 'Check for Updates', buttons: ['OK'] });
   assert.equal(env.dialogCalls[0].opts.title, '检查更新');
   assert.equal((appListeners.get('web-contents-created') || []).length, 1);
+});
+
+test('installModuleLoadHook + createElectronProxy handles completely frozen non-configurable Electron exports', async () => {
+  const env = createMockElectron();
+  const handlers = new Map();
+  const frozenMenu = env.electron.Menu;
+  Object.defineProperty(frozenMenu, 'buildFromTemplate', {
+    value: frozenMenu.buildFromTemplate,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(frozenMenu.prototype, 'popup', {
+    value: frozenMenu.prototype.popup,
+    writable: false,
+    configurable: false,
+  });
+  Object.freeze(frozenMenu);
+
+  const frozenIpc = Object.freeze({
+    handle(channel, fn) {
+      handlers.set(channel, fn);
+    },
+  });
+  const frozenDialog = Object.freeze(env.electron.dialog);
+  const frozenTray = Object.freeze(env.electron.Tray);
+  const frozenApp = Object.freeze({ on() {} });
+
+  const realElectron = {};
+  Object.defineProperties(realElectron, {
+    Menu: { get: () => frozenMenu, enumerable: true, configurable: false },
+    ipcMain: { get: () => frozenIpc, enumerable: true, configurable: false },
+    dialog: { get: () => frozenDialog, enumerable: true, configurable: false },
+    Tray: { get: () => frozenTray, enumerable: true, configurable: false },
+    app: { get: () => frozenApp, enumerable: true, configurable: false },
+  });
+  Object.freeze(realElectron);
+
+  const mockModule = {
+    _load(request) {
+      if (request === 'electron') return realElectron;
+      return null;
+    },
+  };
+  const hookRes = installModuleLoadHook(mockModule, nativeDict);
+  assert.equal(hookRes.installed, true);
+
+  // 模拟 dist/ipcHandlers.js 与 dist/main.js 的 require('electron') 及 __importStar 解构
+  const proxiedElectron = mockModule._load('electron');
+  assert.doesNotThrow(() => {
+    for (const k of Object.keys(proxiedElectron)) void proxiedElectron[k];
+  });
+
+  proxiedElectron.ipcMain.handle('window:show-context-menu', async (_event, items) => {
+    const template = items.map((i) => ({ ...i }));
+    const m = proxiedElectron.Menu.buildFromTemplate(template);
+    m.popup({});
+    return items[0].id;
+  });
+
+  const handler = handlers.get('window:show-context-menu');
+  const resId = await handler({}, [
+    { id: 'sort-lbl', label: 'Sort By' },
+    { id: 'sort-upd', label: 'Last Updated' },
+    { id: 'sort-prm', label: 'Last Prompt' },
+    { id: 'sort-cst', label: 'Custom Order' },
+    { id: 'proj-exp', label: 'Show in File Explorer' },
+    { id: 'proj-del', label: 'Delete Project' },
+    { id: 'conv-unpin', label: 'Unpin' },
+    { id: 'msg-good', label: 'Good Response' },
+  ]);
+  assert.equal(resId, 'sort-lbl');
+  assert.deepEqual(
+    env.popupCalls[0].menu.items.map((i) => i.label),
+    [
+      '排序方式',
+      '最近更新',
+      '最近提问',
+      '自定义顺序',
+      '在文件资源管理器中显示',
+      '删除项目 (Delete Project)',
+      '取消置顶',
+      '回答不错',
+    ]
+  );
+
+  // Tray 通过构造器代理也能拦截动态智能体计数
+  const tray = new proxiedElectron.Tray();
+  const trayMenu = proxiedElectron.Menu.buildFromTemplate([{ label: 'No agents running' }]);
+  trayMenu.items[0].label = '2 agents running';
+  tray.setContextMenu(trayMenu);
+  assert.equal(env.trayMenus[0].items[0].label, '2 个智能体运行中');
+
+  // 对话框也能在冻结对象下正常工作
+  await proxiedElectron.dialog.showMessageBox({ title: 'Check for Updates', buttons: ['OK'] });
+  assert.equal(env.dialogCalls[0].opts.title, '检查更新');
+  assert.equal(createElectronProxy(realElectron, nativeDict), proxiedElectron);
+});
+
+test('updater:quit-and-install and updater:apply trigger detached post-update auto-heal watcher in both hook and proxy modes', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nawe-mh-upd-'));
+  try {
+    const fakeAutoHeal = path.join(tmpDir, 'auto-heal.js');
+    fs.writeFileSync(fakeAutoHeal, '// stub\n', 'utf8');
+    const stateFile = path.join(tmpDir, '.nawe-auto-heal.json');
+    fs.writeFileSync(
+      stateFile,
+      JSON.stringify({
+        enabled: true,
+        nodeExecPath: process.execPath,
+        autoHealPath: fakeAutoHeal,
+      }),
+      'utf8'
+    );
+
+    const spawned = [];
+    const mockSpawn = (cmd, args, opts) => {
+      spawned.push({ cmd, args, opts });
+      return { unref() {} };
+    };
+
+    // 1. installMainHook 模式
+    const handlersA = new Map();
+    const envA = createMockElectron();
+    envA.electron.ipcMain = {
+      handle(ch, fn) {
+        handlersA.set(ch, fn);
+      },
+    };
+    installMainHook(envA.electron, nativeDict, {
+      autoHealStatePath: stateFile,
+      spawnFn: mockSpawn,
+    });
+    envA.electron.ipcMain.handle('updater:quit-and-install', () => 'quit-ok');
+    const resA = handlersA.get('updater:quit-and-install')({});
+    assert.equal(resA, 'quit-ok');
+
+    // 2. createElectronProxy 模式
+    const handlersB = new Map();
+    const envB = createMockElectron();
+    envB.electron.ipcMain = {
+      handle(ch, fn) {
+        handlersB.set(ch, fn);
+      },
+    };
+    const proxyB = createElectronProxy(envB.electron, nativeDict, {
+      noCache: true,
+      autoHealStatePath: stateFile,
+      spawnFn: mockSpawn,
+    });
+    proxyB.ipcMain.handle('updater:apply', () => 'apply-ok');
+    const resB = handlersB.get('updater:apply')({});
+    assert.equal(resB, 'apply-ok');
+
+    assert.equal(spawned.length, 2);
+    for (const call of spawned) {
+      assert.equal(call.cmd, process.execPath);
+      assert.deepEqual(call.args, [fakeAutoHeal, '--post-update-watch']);
+      assert.equal(call.opts.detached, true);
+      assert.equal(call.opts.cwd, os.tmpdir());
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 

@@ -625,6 +625,49 @@ function resolveDefaultPendingSwapPath() {
   return null;
 }
 
+const UPDATER_TRIGGER_CHANNELS = new Set(['updater:quit-and-install', 'updater:apply']);
+
+/**
+ * 当 Antigravity 即将启动官方 NSIS 更新程序时，提前从 os.tmpdir() 拉起独立 Node 守护进程，
+ * 待新版 app.asar 写入完成后自动重打汉化补丁并弹出 1 键恢复提示（绝不占用安装目录句柄）。
+ */
+function triggerPostUpdateAutoHeal(options = {}) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    const { spawn } = require('child_process');
+
+    const statePath =
+      options.autoHealStatePath || path.join(os.homedir(), '.gemini', 'config', '.nawe-auto-heal.json');
+    if (!fs.existsSync(statePath)) return false;
+
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    if (
+      !state ||
+      !state.enabled ||
+      !state.nodeExecPath ||
+      !state.autoHealPath ||
+      !fs.existsSync(state.nodeExecPath) ||
+      !fs.existsSync(state.autoHealPath)
+    ) {
+      return false;
+    }
+
+    const spawnImpl = typeof options.spawnFn === 'function' ? options.spawnFn : spawn;
+    const child = spawnImpl(state.nodeExecPath, [state.autoHealPath, '--post-update-watch'], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      cwd: os.tmpdir(),
+    });
+    if (child && typeof child.unref === 'function') child.unref();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 /**
  * 监听本地 pending-swap.json 信号文件：
  * 当新版本补丁就绪时直接在 Antigravity 窗口内弹出原生中文【立即重启生效】对话框，
@@ -893,6 +936,14 @@ function installMainHook(electron, dict, options = {}) {
             return listener(event, localizedItems, ...rest);
           });
         }
+        if (UPDATER_TRIGGER_CHANNELS.has(channel) && typeof listener === 'function') {
+          return origHandle(channel, (event, ...args) => {
+            try {
+              triggerPostUpdateAutoHeal(options);
+            } catch (_) {}
+            return listener(event, ...args);
+          });
+        }
         return origHandle(channel, listener);
       });
     }
@@ -1008,10 +1059,377 @@ function installMainHook(electron, dict, options = {}) {
   return { installed: true, swapWatcher };
 }
 
+const proxyCache = new WeakMap();
+const sidecarInjectedApps = new WeakSet();
+const swapWatchedApps = new WeakSet();
+const MODULE_HOOK_FLAG = '__naweModuleLoadHooked__';
+
+/**
+ * 为只读/冻结的 Electron 模块对象构建安全透明代理（所有 Proxy 目标均为普通可扩展对象/函数，
+ * 绝不触发 ES6 Proxy 不变量异常，确保冻结 descriptor 下仍能 100% 拦截 Menu/ipcMain/dialog/Tray）。
+ */
+function createElectronProxy(realElectron, dict, options = {}) {
+  if (!realElectron || typeof realElectron !== 'object') return realElectron;
+  if (proxyCache.has(realElectron) && !options.noCache) {
+    return proxyCache.get(realElectron);
+  }
+
+  const translator = createNativeTranslator(dict);
+  const localizedMenus = new WeakSet();
+  const rawToLocalizedMenu = new WeakMap();
+  let lastRawAppMenu = null;
+
+  if (realElectron.app && !sidecarInjectedApps.has(realElectron)) {
+    sidecarInjectedApps.add(realElectron);
+    try {
+      installPluginSidecarInjector(realElectron, options);
+    } catch (_) {}
+  }
+
+  const realDialog = realElectron.dialog;
+  const rawShowMessageBox =
+    realDialog && typeof realDialog.showMessageBox === 'function'
+      ? realDialog.showMessageBox.bind(realDialog)
+      : null;
+
+  if (!swapWatchedApps.has(realElectron)) {
+    swapWatchedApps.add(realElectron);
+    try {
+      startPendingSwapWatcher(realElectron, rawShowMessageBox, options);
+    } catch (_) {}
+  }
+
+  const RealMenu = realElectron.Menu;
+  let wrappedBuildFromTemplate = null;
+  let menuProxy = RealMenu;
+
+  if (RealMenu) {
+    const origBuild =
+      typeof RealMenu.buildFromTemplate === 'function' ? RealMenu.buildFromTemplate.bind(RealMenu) : null;
+    const origSetAppMenu =
+      typeof RealMenu.setApplicationMenu === 'function' ? RealMenu.setApplicationMenu.bind(RealMenu) : null;
+    const origGetAppMenu =
+      typeof RealMenu.getApplicationMenu === 'function' ? RealMenu.getApplicationMenu.bind(RealMenu) : null;
+
+    if (origBuild) {
+      wrappedBuildFromTemplate = function naweProxyBuildFromTemplate(template) {
+        if (!Array.isArray(template) || isAppMenuBarTemplate(template)) {
+          return origBuild(template);
+        }
+        try {
+          const localizedTemplate = translateMenuTemplate(template, translator);
+          const menu = origBuild(localizedTemplate);
+          if (menu && typeof menu === 'object') localizedMenus.add(menu);
+          return menu;
+        } catch (_) {
+          return origBuild(template);
+        }
+      };
+    }
+
+    const wrappedSetAppMenu = origSetAppMenu && origBuild
+      ? function naweProxySetApplicationMenu(menu) {
+          if (!menu || localizedMenus.has(menu)) {
+            if (!menu) lastRawAppMenu = null;
+            return origSetAppMenu(menu);
+          }
+          try {
+            lastRawAppMenu = menu;
+            const template = menuToLocalizedTemplate(menu, translator, { isRoot: true });
+            const localized = origBuild(template);
+            localizedMenus.add(localized);
+            bindDynamicLabelSync(menu, localized, translator);
+            return origSetAppMenu(localized);
+          } catch (_) {
+            return origSetAppMenu(menu);
+          }
+        }
+      : origSetAppMenu;
+
+    const wrappedGetAppMenu = origGetAppMenu
+      ? function naweProxyGetApplicationMenu() {
+          return lastRawAppMenu || origGetAppMenu();
+        }
+      : origGetAppMenu;
+
+    const menuTarget = typeof RealMenu === 'function' ? function naweMenuProxyTarget() {} : {};
+    menuProxy = new Proxy(menuTarget, {
+      get(_t, prop) {
+        if (prop === 'buildFromTemplate' && wrappedBuildFromTemplate) return wrappedBuildFromTemplate;
+        if (prop === 'setApplicationMenu' && wrappedSetAppMenu) return wrappedSetAppMenu;
+        if (prop === 'getApplicationMenu' && wrappedGetAppMenu) return wrappedGetAppMenu;
+        const val = Reflect.get(RealMenu, prop);
+        return typeof val === 'function' ? val.bind(RealMenu) : val;
+      },
+      construct(_t, args) {
+        return Reflect.construct(RealMenu, args, RealMenu);
+      },
+      apply(_t, _thisArg, args) {
+        return Reflect.apply(RealMenu, RealMenu, args);
+      },
+      has(_t, prop) {
+        return prop in RealMenu;
+      },
+      ownKeys() {
+        return Reflect.ownKeys(RealMenu);
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        if (prop === 'prototype') return Reflect.getOwnPropertyDescriptor(target, prop);
+        const val =
+          prop === 'buildFromTemplate' && wrappedBuildFromTemplate
+            ? wrappedBuildFromTemplate
+            : prop === 'setApplicationMenu' && wrappedSetAppMenu
+              ? wrappedSetAppMenu
+              : prop === 'getApplicationMenu' && wrappedGetAppMenu
+                ? wrappedGetAppMenu
+                : Reflect.get(RealMenu, prop);
+        if (val === undefined && !(prop in RealMenu)) return undefined;
+        return { value: val, writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+
+  const realIpcMain = realElectron.ipcMain;
+  let ipcMainProxy = realIpcMain;
+  if (realIpcMain) {
+    const origHandle = typeof realIpcMain.handle === 'function' ? realIpcMain.handle.bind(realIpcMain) : null;
+    const wrappedHandle = origHandle
+      ? function naweProxyIpcHandle(channel, listener) {
+          if (channel === 'window:show-context-menu' && typeof listener === 'function') {
+            return origHandle(channel, (event, items, ...rest) => {
+              let localizedItems = items;
+              try {
+                localizedItems = translateContextMenuItems(items, translator);
+              } catch (_) {
+                localizedItems = items;
+              }
+              return listener(event, localizedItems, ...rest);
+            });
+          }
+          if (UPDATER_TRIGGER_CHANNELS.has(channel) && typeof listener === 'function') {
+            return origHandle(channel, (event, ...args) => {
+              try {
+                triggerPostUpdateAutoHeal(options);
+              } catch (_) {}
+              return listener(event, ...args);
+            });
+          }
+          return origHandle(channel, listener);
+        }
+      : origHandle;
+
+    ipcMainProxy = new Proxy({}, {
+      get(_t, prop) {
+        if (prop === 'handle' && wrappedHandle) return wrappedHandle;
+        const val = Reflect.get(realIpcMain, prop);
+        return typeof val === 'function' ? val.bind(realIpcMain) : val;
+      },
+      has(_t, prop) {
+        return prop in realIpcMain;
+      },
+      ownKeys() {
+        return Reflect.ownKeys(realIpcMain);
+      },
+      getOwnPropertyDescriptor(_t, prop) {
+        const val = prop === 'handle' && wrappedHandle ? wrappedHandle : Reflect.get(realIpcMain, prop);
+        if (val === undefined && !(prop in realIpcMain)) return undefined;
+        return { value: val, writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+
+  let dialogProxy = realDialog;
+  if (realDialog) {
+    const wrappedDialogMethods = {};
+    if (typeof realDialog.showMessageBox === 'function') {
+      const origShow = realDialog.showMessageBox.bind(realDialog);
+      wrappedDialogMethods.showMessageBox = function naweProxyShowMessageBox(arg1, arg2) {
+        try {
+          if (arg2 !== undefined) return origShow(arg1, translator.translateDialogOptions(arg2));
+          return origShow(translator.translateDialogOptions(arg1));
+        } catch (_) {
+          return arg2 !== undefined ? origShow(arg1, arg2) : origShow(arg1);
+        }
+      };
+    }
+    if (typeof realDialog.showMessageBoxSync === 'function') {
+      const origShowSync = realDialog.showMessageBoxSync.bind(realDialog);
+      wrappedDialogMethods.showMessageBoxSync = function naweProxyShowMessageBoxSync(arg1, arg2) {
+        try {
+          if (arg2 !== undefined) return origShowSync(arg1, translator.translateDialogOptions(arg2));
+          return origShowSync(translator.translateDialogOptions(arg1));
+        } catch (_) {
+          return arg2 !== undefined ? origShowSync(arg1, arg2) : origShowSync(arg1);
+        }
+      };
+    }
+    for (const methodName of ['showOpenDialog', 'showOpenDialogSync', 'showSaveDialog', 'showSaveDialogSync']) {
+      if (typeof realDialog[methodName] === 'function') {
+        const origFn = realDialog[methodName].bind(realDialog);
+        wrappedDialogMethods[methodName] = function naweProxyFileDialog(arg1, arg2) {
+          try {
+            if (arg2 !== undefined) return origFn(arg1, translator.translateFileDialogOptions(arg2));
+            return origFn(translator.translateFileDialogOptions(arg1));
+          } catch (_) {
+            return arg2 !== undefined ? origFn(arg1, arg2) : origFn(arg1);
+          }
+        };
+      }
+    }
+
+    dialogProxy = new Proxy({}, {
+      get(_t, prop) {
+        if (Object.prototype.hasOwnProperty.call(wrappedDialogMethods, prop)) {
+          return wrappedDialogMethods[prop];
+        }
+        const val = Reflect.get(realDialog, prop);
+        return typeof val === 'function' ? val.bind(realDialog) : val;
+      },
+      has(_t, prop) {
+        return prop in realDialog;
+      },
+      ownKeys() {
+        return Reflect.ownKeys(realDialog);
+      },
+      getOwnPropertyDescriptor(_t, prop) {
+        const val = Object.prototype.hasOwnProperty.call(wrappedDialogMethods, prop)
+          ? wrappedDialogMethods[prop]
+          : Reflect.get(realDialog, prop);
+        if (val === undefined && !(prop in realDialog)) return undefined;
+        return { value: val, writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+
+  const RealTray = realElectron.Tray;
+  let trayProxy = RealTray;
+  if (RealTray && RealMenu && typeof RealMenu.buildFromTemplate === 'function') {
+    const origBuildRaw = RealMenu.buildFromTemplate.bind(RealMenu);
+    const wrapTrayInstance = (tray) => {
+      if (!tray || typeof tray !== 'object') return tray;
+      return new Proxy({}, {
+        get(_t, prop) {
+          if (prop === 'setContextMenu' && typeof tray.setContextMenu === 'function') {
+            return function naweProxyTraySetContextMenu(menu) {
+              if (!menu || (localizedMenus.has(menu) && !hasTranslatableMenuItem(menu, translator))) {
+                return tray.setContextMenu(menu);
+              }
+              try {
+                const template = menuToLocalizedTemplate(menu, translator, { isRoot: false });
+                const localized = origBuildRaw(template);
+                localizedMenus.add(localized);
+                return tray.setContextMenu(localized);
+              } catch (_) {
+                return tray.setContextMenu(menu);
+              }
+            };
+          }
+          const val = Reflect.get(tray, prop);
+          return typeof val === 'function' ? val.bind(tray) : val;
+        },
+        set(_t, prop, value) {
+          return Reflect.set(tray, prop, value);
+        },
+      });
+    };
+
+    const trayTarget = typeof RealTray === 'function' ? function naweTrayProxyTarget() {} : {};
+    trayProxy = new Proxy(trayTarget, {
+      get(_t, prop) {
+        const val = Reflect.get(RealTray, prop);
+        return typeof val === 'function' ? val.bind(RealTray) : val;
+      },
+      construct(_t, args) {
+        const tray = Reflect.construct(RealTray, args, RealTray);
+        return wrapTrayInstance(tray);
+      },
+      has(_t, prop) {
+        return prop in RealTray;
+      },
+      ownKeys() {
+        return Reflect.ownKeys(RealTray);
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        if (prop === 'prototype') return Reflect.getOwnPropertyDescriptor(target, prop);
+        const val = Reflect.get(RealTray, prop);
+        if (val === undefined && !(prop in RealTray)) return undefined;
+        return { value: val, writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+
+  const resolveElectronProp = (prop) => {
+    if (prop === 'Menu') return menuProxy;
+    if (prop === 'ipcMain') return ipcMainProxy;
+    if (prop === 'dialog') return dialogProxy;
+    if (prop === 'Tray') return trayProxy;
+    return Reflect.get(realElectron, prop);
+  };
+
+  const electronProxy = new Proxy({}, {
+    get(_t, prop) {
+      return resolveElectronProp(prop);
+    },
+    has(_t, prop) {
+      return prop in realElectron;
+    },
+    ownKeys() {
+      return Reflect.ownKeys(realElectron);
+    },
+    getOwnPropertyDescriptor(_t, prop) {
+      const val = resolveElectronProp(prop);
+      if (val === undefined && !(prop in realElectron)) return undefined;
+      return { value: val, writable: true, enumerable: true, configurable: true };
+    },
+  });
+
+  if (!options.noCache) {
+    proxyCache.set(realElectron, electronProxy);
+  }
+  // 保持 rawToLocalizedMenu 引用可达以免 lint 告警
+  void rawToLocalizedMenu;
+  return electronProxy;
+}
+
+/**
+ * 拦截 Node.js CommonJS Module._load('electron')，确保后续所有模块（包括 dist/main.js、
+ * dist/ipcHandlers.js、dist/tray.js 等）拿到可安全拦截的代理 electron 对象。
+ */
+function installModuleLoadHook(ModuleMod, dict, options = {}) {
+  if (!ModuleMod || typeof ModuleMod._load !== 'function') {
+    return { installed: false, reason: 'no-module' };
+  }
+  if (ModuleMod[MODULE_HOOK_FLAG]) {
+    return { installed: false, reason: 'already-installed' };
+  }
+
+  const origLoad = ModuleMod._load;
+  ModuleMod._load = function naweModuleLoad(request, parent, isMain) {
+    const loaded = origLoad.call(this, request, parent, isMain);
+    if (request === 'electron' && loaded && typeof loaded === 'object') {
+      try {
+        return createElectronProxy(loaded, dict, options);
+      } catch (_) {
+        return loaded;
+      }
+    }
+    return loaded;
+  };
+
+  try {
+    Object.defineProperty(ModuleMod, MODULE_HOOK_FLAG, { value: true, enumerable: false });
+  } catch (_) {}
+
+  return { installed: true };
+}
+
 module.exports = {
   createNativeTranslator,
   menuToLocalizedTemplate,
   translateMenuTemplate,
   translateContextMenuItems,
+  createElectronProxy,
+  installModuleLoadHook,
+  triggerPostUpdateAutoHeal,
   installMainHook,
 };

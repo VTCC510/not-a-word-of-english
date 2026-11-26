@@ -2456,6 +2456,218 @@
       "pattern": "^Go\\s+to\\s+#(\\d+)(?:\\s*\\(([^)]+)\\))?$",
       "flags": "",
       "replacement": "跳转到 #$1"
+    },
+    {
+      "keywords": [
+        "no",
+        "hosts",
+        "type",
+        "above"
+      ],
+      "pattern": "^No\\s+hosts\\s+in\\s+(.+?)\\s+yet\\.\\s+Type\\s+one\\s+above\\.$",
+      "flags": "i",
+      "replacement": "$1 中暂无主机，请在上方直接输入。"
+    },
+    {
+      "keywords": [
+        "hidden",
+        "host",
+        "hosts"
+      ],
+      "pattern": "^(\\d+)\\s+hidden\\s+hosts?$",
+      "flags": "i",
+      "replacement": "$1 个已隐藏主机"
+    },
+    {
+      "keywords": [
+        "ssh",
+        "config"
+      ],
+      "pattern": "^SSH\\s+Config\\s+\\((.+)\\)$",
+      "flags": "i",
+      "replacement": "SSH 配置 ($1)"
+    },
+    {
+      "keywords": [
+        "ssh",
+        "config"
+      ],
+      "pattern": "^SSH\\s+config:\\s+(.+)$",
+      "flags": "i",
+      "replacement": "SSH 配置文件：$1"
+    },
+    {
+      "keywords": [
+        "couldn",
+        "connect",
+        "to"
+      ],
+      "pattern": "^Couldn't\\s+connect\\s+to\\s+(.+)$",
+      "flags": "i",
+      "replacement": "无法连接到 $1"
+    },
+    {
+      "keywords": [
+        "remove",
+        "from",
+        "recent"
+      ],
+      "pattern": "^Remove\\s+(.+?)\\s+from\\s+Recent$",
+      "flags": "",
+      "replacement": "从最近记录中移除 $1"
+    },
+    {
+      "keywords": [
+        "removed",
+        "from",
+        "recent"
+      ],
+      "pattern": "^Removed\\s+(.+?)\\s+from\\s+Recent$",
+      "flags": "",
+      "replacement": "已从最近记录中移除 $1"
+    },
+    {
+      "keywords": [
+        "couldn",
+        "remove",
+        "recent"
+      ],
+      "pattern": "^Couldn't\\s+remove\\s+(.+?)\\s+from\\s+Recent$",
+      "flags": "",
+      "replacement": "无法从最近记录中移除 $1"
+    },
+    {
+      "keywords": [
+        "hide",
+        "from",
+        "list"
+      ],
+      "pattern": "^Hide\\s+(.+?)\\s+from\\s+this\\s+list$",
+      "flags": "",
+      "replacement": "从列表中隐藏 $1"
+    },
+    {
+      "keywords": [
+        "hid"
+      ],
+      "pattern": "^Hid\\s+(.+)$",
+      "flags": "",
+      "replacement": "已隐藏 $1"
+    },
+    {
+      "keywords": [
+        "show",
+        "list",
+        "again"
+      ],
+      "pattern": "^Show\\s+(.+?)\\s+in\\s+the\\s+list\\s+again$",
+      "flags": "",
+      "replacement": "重新在列表中显示 $1"
+    },
+    {
+      "keywords": [
+        "showing",
+        "again"
+      ],
+      "pattern": "^Showing\\s+(.+?)\\s+again$",
+      "flags": "",
+      "replacement": "已重新显示 $1"
+    },
+    {
+      "keywords": [
+        "add",
+        "to",
+        "agent"
+      ],
+      "pattern": "^Add\\s+(.+?)\\s+to\\s+ssh-agent\\?$",
+      "flags": "i",
+      "replacement": "是否将密钥 $1 添加到 ssh-agent？"
+    },
+    {
+      "keywords": [
+        "verification",
+        "code",
+        "for"
+      ],
+      "pattern": "^Verification\\s+code\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的验证码"
+    },
+    {
+      "keywords": [
+        "password",
+        "for"
+      ],
+      "pattern": "^Password\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的密码"
+    },
+    {
+      "keywords": [
+        "current",
+        "password",
+        "for"
+      ],
+      "pattern": "^Current\\s+password\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的当前密码"
+    },
+    {
+      "keywords": [
+        "new",
+        "password",
+        "for"
+      ],
+      "pattern": "^New\\s+password\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的新密码"
+    },
+    {
+      "keywords": [
+        "confirm",
+        "new",
+        "password"
+      ],
+      "pattern": "^Confirm\\s+new\\s+password\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "确认 $1 的新密码"
+    },
+    {
+      "keywords": [
+        "passphrase",
+        "for"
+      ],
+      "pattern": "^Passphrase\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "密钥 $1 的通行短语"
+    },
+    {
+      "keywords": [
+        "pin",
+        "for"
+      ],
+      "pattern": "^PIN\\s+for\\s+(.+)$",
+      "flags": "i",
+      "replacement": "$1 的 PIN 码"
+    },
+    {
+      "keywords": [
+        "sign",
+        "in",
+        "to"
+      ],
+      "pattern": "^Sign\\s+in\\s+to\\s+(.+)$",
+      "flags": "i",
+      "replacement": "登录到 $1"
+    },
+    {
+      "keywords": [
+        "question",
+        "from"
+      ],
+      "pattern": "^Question\\s+from\\s+(.+)$",
+      "flags": "i",
+      "replacement": "来自 $1 的询问"
     }
   ]
 }

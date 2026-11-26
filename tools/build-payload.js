@@ -85,6 +85,9 @@ function buildMainHookModuleSource(dicts) {
     'const NAWE_NATIVE_DICT = ' + JSON.stringify(dicts.nativeMenu) + ';',
     'exports.boot = function bootNaweMainHook(electron) {',
     '  try {',
+    '    if (typeof exports.installModuleLoadHook === "function") {',
+    '      exports.installModuleLoadHook(require("module"), NAWE_NATIVE_DICT);',
+    '    }',
     '    return exports.installMainHook(electron, NAWE_NATIVE_DICT);',
     '  } catch (_) {',
     '    return { installed: false, reason: "caught-error" };',
@@ -101,6 +104,7 @@ function buildPreloadInjectionSource(dicts, { version = '1.0.0' } = {}) {
     highRiskBilingual: dicts.highRiskBilingual,
     uiStatic: dicts.uiStatic,
     uiPatterns: dicts.uiPatterns,
+    nativeMenu: dicts.nativeMenu,
   };
   return [
     '',
@@ -124,6 +128,20 @@ function buildPreloadInjectionSource(dicts, { version = '1.0.0' } = {}) {
     '/* [NAWE-PRELOAD-ENGINE-END] */',
     '',
   ].join('\n');
+}
+
+function patchPreloadJsSource(origPreload, preloadPayload) {
+  if (typeof origPreload !== 'string') {
+    throw new Error('源 preload 脚本内容无效。');
+  }
+  if (origPreload.includes(PRELOAD_MARKER)) {
+    throw new Error('源 preload 脚本已包含渲染层注入标记，中止以防重复叠加。');
+  }
+  const patchedPreload = origPreload.replace(
+    /(\binvoke\s*\(\s*(['"])window:show-context-menu\2\s*,\s*)([A-Za-z_$][\w$]*)(\s*\))/g,
+    '$1(typeof globalThis.__naweTranslateContextMenuItems === "function" ? globalThis.__naweTranslateContextMenuItems($3) : $3)$4'
+  );
+  return patchedPreload + preloadPayload;
 }
 
 function patchMainJsSource(origMainJs) {
@@ -155,20 +173,17 @@ function buildModifications(sourceAsarPath, options = {}) {
   if (!origPreload) {
     throw new Error('源 app.asar 中未找到 dist/preload.js，客户端结构可能已变化。');
   }
-  if (origPreload.includes(PRELOAD_MARKER)) {
-    throw new Error('源 dist/preload.js 已包含渲染层注入标记，中止以防重复叠加。');
-  }
   const preloadPayload = buildPreloadInjectionSource(dicts, options);
-  modifications.set('dist/preload.js', origPreload + preloadPayload);
+  modifications.set('dist/preload.js', patchPreloadJsSource(origPreload, preloadPayload));
 
   const origWizardPreload = asar.readFileText(sourceAsarPath, 'dist/ideInstall/wizardPreload.js');
   if (origWizardPreload && !origWizardPreload.includes(PRELOAD_MARKER)) {
-    modifications.set('dist/ideInstall/wizardPreload.js', origWizardPreload + preloadPayload);
+    modifications.set('dist/ideInstall/wizardPreload.js', patchPreloadJsSource(origWizardPreload, preloadPayload));
   }
 
   const origSshPromptPreload = asar.readFileText(sourceAsarPath, 'dist/remote/sshPromptPreload.js');
   if (origSshPromptPreload && !origSshPromptPreload.includes(PRELOAD_MARKER)) {
-    modifications.set('dist/remote/sshPromptPreload.js', origSshPromptPreload + preloadPayload);
+    modifications.set('dist/remote/sshPromptPreload.js', patchPreloadJsSource(origSshPromptPreload, preloadPayload));
   }
 
   return modifications;
@@ -216,6 +231,7 @@ module.exports = {
   loadAndValidateDictionaries,
   buildMainHookModuleSource,
   buildPreloadInjectionSource,
+  patchPreloadJsSource,
   patchMainJsSource,
   buildModifications,
   runFullAudit,

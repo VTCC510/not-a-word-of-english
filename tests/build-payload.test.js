@@ -28,6 +28,12 @@ test('Generated main-hook and self-contained preload payloads parse cleanly with
   assert.doesNotThrow(() => new vm.Script(mainHookSrc, { filename: 'dist/nawe-main-hook.js' }));
   assert.doesNotThrow(() => new vm.Script(preloadSrc, { filename: 'dist/preload.js' }));
   assert.ok(!/\brequire\s*\(/.test(preloadSrc), 'Preload injection must not call require()');
+  assert.match(mainHookSrc, /installModuleLoadHook/);
+
+  const rawPreload = 'showContextMenu: (items) => electron_1.ipcRenderer.invoke(\'window:show-context-menu\', items),';
+  const patchedPreload = builder.patchPreloadJsSource(rawPreload, '\n// payload\n');
+  assert.match(patchedPreload, /__naweTranslateContextMenuItems\(items\)/);
+  assert.doesNotThrow(() => new vm.Script('const e = { showContextMenu: (items) => Promise.resolve(items) };'));
 });
 
 test('End-to-end buildModifications + patcher dry-run packs and verifies cleanly on mock Antigravity', () => {

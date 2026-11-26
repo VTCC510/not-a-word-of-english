@@ -137,7 +137,8 @@
     "This undo action will not make any code changes.": "此次撤销不会修改任何代码文件 (This undo action will not make any code changes.)",
     "Revert file changes": "同时回滚文件改动 (Revert file changes)",
     "Stop execution": "停止执行 (Stop execution)",
-    "Cancel (Ctrl+D)": "取消 (Cancel, Ctrl+D)"
+    "Cancel (Ctrl+D)": "取消 (Cancel, Ctrl+D)",
+    "Accept updated host keys?": "是否接受更新后的主机密钥？ (Accept updated host keys?)"
   },
   "patterns": [
     {
@@ -253,6 +254,18 @@
       "pattern": "^Allow\\s+([\\s\\S]+)\\?$",
       "flags": "",
       "replacement": "是否允许 $1？ (Allow $1?)"
+    },
+    {
+      "keywords": ["trust"],
+      "pattern": "^Trust\\s+([^\\s?]+)\\?$",
+      "flags": "",
+      "replacement": "是否信任主机 $1？ (Trust $1?)"
+    },
+    {
+      "keywords": ["connect", "anyway"],
+      "pattern": "^Connect\\s+to\\s+(.+?)\\s+anyway\\?$",
+      "flags": "i",
+      "replacement": "警告：是否仍要连接到 $1？ (Connect to $1 anyway?)"
     }
   ]
 }

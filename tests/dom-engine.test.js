@@ -11,6 +11,7 @@ const bundle = {
   highRiskBilingual: dicts.highRiskBilingual,
   uiStatic: dicts.uiStatic,
   uiPatterns: dicts.uiPatterns,
+  nativeMenu: dicts.nativeMenu,
 };
 
 function createMockDom(locationObj = { protocol: 'http:', hostname: '127.0.0.1' }) {
@@ -1433,6 +1434,160 @@ test('Cancel is pure Chinese on normal pages and bilingual in high-risk dialogs;
   assert.equal(t.translateText('At Mention Code Block').translated, '@提及此代码块');
   assert.equal(t.translateText('Insert in Terminal').translated, '插入到终端');
   assert.equal(t.translateText('Copy code').translated, '复制代码');
+
+  // 4) 反馈确认提示、完整命令展开/折叠与资源管理器标签 + __naweTranslateContextMenuItems
+  assert.equal(t.translateText('Thanks for your feedback!').translated, '感谢你的反馈！');
+  assert.equal(t.translateText('Show full command').translated, '显示完整命令');
+  assert.equal(t.translateText('Collapse command').translated, '折叠命令');
+  assert.equal(t.translateText('Copy command').translated, '复制命令');
+  assert.equal(t.translateText('Copied!').translated, '已复制！');
+  assert.equal(t.translateText('Show in File Explorer').translated, '在文件资源管理器中显示');
+
+  const ctxDom = createMockDom();
+  const { controller: ctxCtrl } = installDomEngine(ctxDom.win, bundle);
+  const rawMenuItems = [
+    { id: 'c1', label: 'Rename' },
+    { id: 'c2', label: 'Unpin' },
+    { id: 'c3', label: 'Mark Unread' },
+    {
+      id: 'c4',
+      type: 'submenu',
+      label: 'Copy',
+      submenu: [{ id: 'c4-1', label: 'Conversation Name' }, { id: 'c4-2', label: 'Conversation ID' }],
+    },
+    {
+      id: 'c5',
+      type: 'submenu',
+      label: 'Split',
+      submenu: [{ id: 'c5-1', label: 'Split Right' }, { id: 'c5-2', label: 'Split Down' }],
+    },
+    { id: 'c6', label: 'Archive' },
+    { id: 'c7', label: 'Delete' },
+    { id: 'p1', label: 'Sort By' },
+    { id: 'p2', label: 'Last Updated' },
+    { id: 'p3', label: 'Last Prompt' },
+    { id: 'p4', label: 'Custom Order' },
+    { id: 'p5', label: 'Copy Project Name' },
+    { id: 'p6', label: 'Project Settings' },
+    { id: 'p7', label: 'Show in File Explorer' },
+    { id: 'p8', label: 'Delete Project' },
+    { id: 'm1', label: 'Good Response' },
+    { id: 'm2', label: 'Bad Response' },
+  ];
+
+  const translatedZh = ctxDom.win.__naweTranslateContextMenuItems(rawMenuItems);
+  assert.equal(rawMenuItems[0].label, 'Rename');
+  assert.deepEqual(
+    translatedZh.map((i) => [i.id, i.label]),
+    [
+      ['c1', '重命名'],
+      ['c2', '取消置顶'],
+      ['c3', '标为未读'],
+      ['c4', '复制'],
+      ['c5', '拆分视图'],
+      ['c6', '归档'],
+      ['c7', '删除'],
+      ['p1', '排序方式'],
+      ['p2', '最近更新'],
+      ['p3', '最近提问'],
+      ['p4', '自定义顺序'],
+      ['p5', '复制项目名称'],
+      ['p6', '项目设置'],
+      ['p7', '在文件资源管理器中显示'],
+      ['p8', '删除项目 (Delete Project)'],
+      ['m1', '回答不错'],
+      ['m2', '回答不佳'],
+    ]
+  );
+  assert.deepEqual(
+    translatedZh[3].submenu.map((i) => i.label),
+    ['对话名称', '对话 ID']
+  );
+
+  ctxCtrl.setMode('bilingual');
+  const translatedBi = ctxDom.win.__naweTranslateContextMenuItems(rawMenuItems);
+  assert.equal(translatedBi[0].label, '重命名 (Rename)');
+  assert.equal(translatedBi[3].submenu[1].label, '对话 ID (Conversation ID)');
+  assert.equal(translatedBi[14].label, '删除项目 (Delete Project)');
+
+  ctxCtrl.setMode('en');
+  const translatedEn = ctxDom.win.__naweTranslateContextMenuItems(rawMenuItems);
+  assert.equal(translatedEn[0].label, 'Rename');
+  ctxCtrl.disconnect();
+});
+
+test('Open SSH Host modal and SSH remote security prompts translate accurately', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  const dialog = new MockElement('div', { role: 'dialog' });
+  const heading = new MockElement('h2');
+  heading.appendChild(new MockText('Open SSH Host'));
+
+  const subtitle = new MockElement('p');
+  subtitle.appendChild(new MockText('Enter [user@]host[:port], or pick a host from your SSH config.'));
+  subtitle.appendChild(new MockText(' Then create the project in its window.'));
+
+  const input = new MockElement('input', {
+    placeholder: 'user@host:port',
+    'aria-label': 'SSH host',
+  });
+
+  const configLabel = new MockElement('span');
+  configLabel.appendChild(new MockText('SSH config: '));
+  const defaultPathSpan = new MockElement('span');
+  defaultPathSpan.appendChild(new MockText('~/.ssh/config (default)'));
+  const chooseBtn = new MockElement('button');
+  chooseBtn.appendChild(new MockText('Choose File…'));
+
+  const emptyHosts = new MockElement('p');
+  emptyHosts.appendChild(new MockText('No hosts in '));
+  emptyHosts.appendChild(new MockText('~/.ssh/config'));
+  emptyHosts.appendChild(new MockText(' yet. Type one above.'));
+
+  const customEmptyHosts = new MockElement('p');
+  customEmptyHosts.appendChild(new MockText('No hosts in '));
+  customEmptyHosts.appendChild(new MockText('C:\\Users\\demo\\.ssh\\config'));
+  customEmptyHosts.appendChild(new MockText(' yet. Type one above.'));
+
+  const hostKeyTitle = new MockElement('h3');
+  hostKeyTitle.appendChild(new MockText('Trust github.com?'));
+  const updatedKeysTitle = new MockElement('h3');
+  updatedKeysTitle.appendChild(new MockText('Accept updated host keys?'));
+  const errBanner = new MockElement('span');
+  errBanner.appendChild(new MockText("Couldn't connect to "));
+  errBanner.appendChild(new MockText('prod-box'));
+
+  dialog.appendChild(heading);
+  dialog.appendChild(subtitle);
+  dialog.appendChild(input);
+  dialog.appendChild(configLabel);
+  dialog.appendChild(defaultPathSpan);
+  dialog.appendChild(chooseBtn);
+  dialog.appendChild(emptyHosts);
+  dialog.appendChild(customEmptyHosts);
+  dialog.appendChild(hostKeyTitle);
+  dialog.appendChild(updatedKeysTitle);
+  dialog.appendChild(errBanner);
+  body.appendChild(dialog);
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(heading.textContent, '打开 SSH 主机');
+  assert.equal(
+    subtitle.textContent,
+    '输入 [用户名@]主机[:端口]，或从 SSH 配置中选择主机，随后在其窗口中创建项目。'
+  );
+  assert.equal(input.getAttribute('placeholder'), '用户名@主机:端口');
+  assert.equal(input.getAttribute('aria-label'), 'SSH 主机');
+  assert.equal(configLabel.textContent, 'SSH 配置文件： ');
+  assert.equal(defaultPathSpan.textContent, '~/.ssh/config（默认）');
+  assert.equal(chooseBtn.textContent, '选择文件…');
+  assert.equal(emptyHosts.textContent, '~/.ssh/config 中暂无主机，请在上方直接输入。');
+  assert.equal(customEmptyHosts.textContent, 'C:\\Users\\demo\\.ssh\\config 中暂无主机，请在上方直接输入。');
+  assert.equal(hostKeyTitle.textContent, '是否信任主机 github.com？ (Trust github.com?)');
+  assert.equal(updatedKeysTitle.textContent, '是否接受更新后的主机密钥？ (Accept updated host keys?)');
+  assert.equal(errBanner.textContent, '无法连接到 prod-box');
 });
 
 

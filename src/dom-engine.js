@@ -176,6 +176,33 @@
     const highRisk = safe.highRiskBilingual || {};
     const uiStatic = safe.uiStatic || {};
     const uiPatterns = safe.uiPatterns || {};
+    const nativeMenu = safe.nativeMenu || {};
+
+    const menuExact = new Map();
+    const menuLower = new Map();
+    const menuNorm = new Map();
+    const menuBase = new Map();
+    for (const [k, v] of Object.entries(nativeMenu.menuLabels || {})) {
+      menuExact.set(k, v);
+      menuLower.set(k.toLowerCase(), v);
+      const norm = normalizeTypographyPreserveCase(k).toLowerCase();
+      if (norm && !menuNorm.has(norm)) menuNorm.set(norm, v);
+      const { base, suffix } = splitTrailingPunct(k);
+      const baseLow = base.toLowerCase();
+      if (baseLow.length >= 3 && (!menuBase.has(baseLow) || suffix === '')) {
+        menuBase.set(baseLow, { origSuffix: suffix, value: v });
+      }
+    }
+    const compiledMenuPatterns = [];
+    for (const item of Array.isArray(nativeMenu.menuPatterns) ? nativeMenu.menuPatterns : []) {
+      if (!item || typeof item.pattern !== 'string' || typeof item.replacement !== 'string') continue;
+      try {
+        compiledMenuPatterns.push({
+          regex: new RegExp(item.pattern, item.flags || ''),
+          replacement: item.replacement,
+        });
+      } catch (_) {}
+    }
 
     const skipTags = new Set((rules.skipTags || []).map((t) => String(t).toUpperCase()));
     const attributeOnlyTags = new Set(
@@ -518,6 +545,76 @@
       return false;
     }
 
+    function translateMenuItemLabel(rawLabel, { langMode = 'zh' } = {}) {
+      if (langMode === 'en' || typeof rawLabel !== 'string' || !rawLabel.trim()) return rawLabel;
+      if (CJK_RE.test(rawLabel)) return rawLabel;
+
+      const clean = rawLabel.replace(/&([A-Za-z0-9])/g, '$1').trim();
+      const norm = normalizeTypographyPreserveCase(clean);
+      const normLow = norm.toLowerCase();
+      let translated = null;
+
+      if (menuExact.has(clean)) {
+        translated = menuExact.get(clean);
+      } else if (menuLower.has(clean.toLowerCase())) {
+        translated = menuLower.get(clean.toLowerCase());
+      } else if (menuNorm.has(normLow)) {
+        translated = menuNorm.get(normLow);
+      } else {
+        for (const rule of compiledMenuPatterns) {
+          if (rule.regex.test(clean)) {
+            translated = clean.replace(rule.regex, rule.replacement);
+            break;
+          }
+          if (norm !== clean && rule.regex.test(norm)) {
+            translated = norm.replace(rule.regex, rule.replacement);
+            break;
+          }
+        }
+        if (translated === null) {
+          const { base, suffix } = splitTrailingPunct(clean);
+          const baseLow = base.toLowerCase();
+          if (baseLow.length >= 3 && menuBase.has(baseLow)) {
+            const hit = menuBase.get(baseLow);
+            translated = adaptTranslatedTrailingPunct(hit.value, hit.origSuffix, suffix);
+          }
+        }
+      }
+
+      if (translated === null) {
+        const res = translateText(clean, {
+          isHighRisk: containsHighRiskKeyword(clean),
+          controlOnly: false,
+          bilingualAll: langMode === 'bilingual',
+        });
+        return res.changed ? preserveWhitespace(rawLabel, res.translated) : rawLabel;
+      }
+
+      const finalLabel = langMode === 'bilingual' ? ensureBilingual(translated, clean) : translated;
+      return preserveWhitespace(rawLabel, finalLabel);
+    }
+
+    function translateMenuItems(items, opts = {}) {
+      if (!Array.isArray(items)) return items;
+      return items.map((item) => {
+        if (!item || typeof item !== 'object') return item;
+        const next = { ...item };
+        if (typeof next.label === 'string' && next.label) {
+          next.label = translateMenuItemLabel(next.label, opts);
+        }
+        if (typeof next.sublabel === 'string' && next.sublabel) {
+          next.sublabel = translateMenuItemLabel(next.sublabel, opts);
+        }
+        if (typeof next.toolTip === 'string' && next.toolTip) {
+          next.toolTip = translateMenuItemLabel(next.toolTip, opts);
+        }
+        if (Array.isArray(next.submenu)) {
+          next.submenu = translateMenuItems(next.submenu, opts);
+        }
+        return next;
+      });
+    }
+
     return {
       skipTags,
       attributeOnlyTags,
@@ -531,6 +628,8 @@
       looksLikeCodeOrCommand,
       containsHighRiskKeyword,
       translateText,
+      translateMenuItemLabel,
+      translateMenuItems,
     };
   }
 
@@ -986,11 +1085,30 @@
           obs.disconnect();
         } catch (_) {}
       }
+      if (!isSubframe) {
+        try {
+          if (globalScope && globalScope.__naweTranslateContextMenuItems === translatePreloadMenuItems) {
+            delete globalScope.__naweTranslateContextMenuItems;
+          }
+          if (win && win.__naweTranslateContextMenuItems === translatePreloadMenuItems) {
+            delete win.__naweTranslateContextMenuItems;
+          }
+        } catch (_) {}
+      }
       if (subframeMessageHandler && typeof win.removeEventListener === 'function') {
         try {
           win.removeEventListener('message', subframeMessageHandler);
         } catch (_) {}
         subframeMessageHandler = null;
+      }
+    }
+
+    function translatePreloadMenuItems(items) {
+      if (!enabled || tripped) return items;
+      try {
+        return translator.translateMenuItems(items, { langMode });
+      } catch (_) {
+        return items;
       }
     }
 
@@ -1403,6 +1521,12 @@
     function start() {
       try {
         installShadowHook();
+        if (!isSubframe) {
+          try {
+            if (globalScope) globalScope.__naweTranslateContextMenuItems = translatePreloadMenuItems;
+            if (win) win.__naweTranslateContextMenuItems = translatePreloadMenuItems;
+          } catch (_) {}
+        }
         if (isSubframe && typeof win.addEventListener === 'function' && !subframeMessageHandler) {
           subframeMessageHandler = (e) => {
             try {
