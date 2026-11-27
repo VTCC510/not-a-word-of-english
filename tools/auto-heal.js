@@ -108,14 +108,16 @@ function enableAutoHeal({
 
   const hooksObj = readHooksFileForMerge(hooksFile);
   const command = buildHookCommand(nodeExecPath, autoHealPath, platform);
+  const hookHandlers = [
+    {
+      type: 'command',
+      command,
+      timeout: 15,
+    },
+  ];
   hooksObj[HOOK_GROUP_KEY] = {
-    SessionStart: [
-      {
-        type: 'command',
-        command,
-        timeout: 15,
-      },
-    ],
+    SessionStart: hookHandlers,
+    PreInvocation: hookHandlers,
   };
   writeJsonAtomic(hooksFile, hooksObj);
 
@@ -172,7 +174,9 @@ function getAutoHealStatus({ configDir } = {}) {
       typeof hooks === 'object' &&
       hooks[HOOK_GROUP_KEY] &&
       Array.isArray(hooks[HOOK_GROUP_KEY].SessionStart) &&
-      hooks[HOOK_GROUP_KEY].SessionStart.length > 0
+      hooks[HOOK_GROUP_KEY].SessionStart.length > 0 &&
+      Array.isArray(hooks[HOOK_GROUP_KEY].PreInvocation) &&
+      hooks[HOOK_GROUP_KEY].PreInvocation.length > 0
   );
 
   return {

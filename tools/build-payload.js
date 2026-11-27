@@ -130,6 +130,28 @@ function buildPreloadInjectionSource(dicts, { version = '1.0.0' } = {}) {
   ].join('\n');
 }
 
+function buildFramePreloadSource(preloadPayload) {
+  return [
+    "'use strict';",
+    '/* [NAWE-FRAME-PRELOAD-BEGIN] */',
+    ';(function naweFramePreloadGuard() {',
+    '  try {',
+    '    if (typeof window === "undefined" || !window.location) return;',
+    '    var isSub = false;',
+    '    try { isSub = Boolean(window.top && window.top !== window); } catch (_) { isSub = true; }',
+    '    if (!isSub) return;',
+    '    var proto = String(window.location.protocol || "").toLowerCase();',
+    '    var host = String(window.location.hostname || "").toLowerCase();',
+    '    var allowed = proto === "plugin:" || ((proto === "http:" || proto === "https:") && (host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host === "::1"));',
+    '    if (!allowed) return;',
+    preloadPayload,
+    '  } catch (_) {}',
+    '})();',
+    '/* [NAWE-FRAME-PRELOAD-END] */',
+    '',
+  ].join('\n');
+}
+
 function patchPreloadJsSource(origPreload, preloadPayload) {
   if (typeof origPreload !== 'string') {
     throw new Error('源 preload 脚本内容无效。');
@@ -175,6 +197,7 @@ function buildModifications(sourceAsarPath, options = {}) {
   }
   const preloadPayload = buildPreloadInjectionSource(dicts, options);
   modifications.set('dist/preload.js', patchPreloadJsSource(origPreload, preloadPayload));
+  modifications.set('dist/nawe-frame-preload.js', buildFramePreloadSource(preloadPayload));
 
   const origWizardPreload = asar.readFileText(sourceAsarPath, 'dist/ideInstall/wizardPreload.js');
   if (origWizardPreload && !origWizardPreload.includes(PRELOAD_MARKER)) {
@@ -199,10 +222,12 @@ function runFullAudit(dictDir = DICT_DIR) {
 
   const mainSrc = buildMainHookModuleSource(dicts);
   const preloadSrc = buildPreloadInjectionSource(dicts, { version: 'audit' });
+  const framePreloadSrc = buildFramePreloadSource(preloadSrc);
   new vm.Script(mainSrc, { filename: 'dist/nawe-main-hook.js' });
   new vm.Script(preloadSrc, { filename: 'dist/preload.js' });
+  new vm.Script(framePreloadSrc, { filename: 'dist/nawe-frame-preload.js' });
 
-  if (/\brequire\s*\(/.test(preloadSrc)) {
+  if (/\brequire\s*\(/.test(preloadSrc) || /\brequire\s*\(/.test(framePreloadSrc)) {
     throw new Error('安全审计失败：渲染层注入脚本中检测到 require() 调用。');
   }
 
@@ -231,6 +256,7 @@ module.exports = {
   loadAndValidateDictionaries,
   buildMainHookModuleSource,
   buildPreloadInjectionSource,
+  buildFramePreloadSource,
   patchPreloadJsSource,
   patchMainJsSource,
   buildModifications,

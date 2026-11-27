@@ -81,6 +81,8 @@ test('enableAutoHeal merges hooks.json without clobbering user hooks and disable
     assert.deepEqual(hooksAfter['user-custom-hook'], existingHooks['user-custom-hook']);
     assert.ok(Array.isArray(hooksAfter[autoHeal.HOOK_GROUP_KEY].SessionStart));
     assert.equal(hooksAfter[autoHeal.HOOK_GROUP_KEY].SessionStart[0].type, 'command');
+    assert.ok(Array.isArray(hooksAfter[autoHeal.HOOK_GROUP_KEY].PreInvocation));
+    assert.equal(hooksAfter[autoHeal.HOOK_GROUP_KEY].PreInvocation[0].type, 'command');
 
     const status = autoHeal.getAutoHealStatus({ configDir });
     assert.equal(status.enabled, true);

@@ -251,7 +251,11 @@
     "Remove from Project": "从项目中移除",
     "Remove from Workspace": "从工作区中移除",
     "Open SSH Host...": "打开 SSH 主机...",
-    "Connect to SSH Host...": "连接到 SSH 主机..."
+    "Connect to SSH Host...": "连接到 SSH 主机...",
+    "Fork in Current Folder": "在当前文件夹中派生",
+    "Fork in New Git Worktree": "在新 Git 工作树中派生",
+    "Hide from Sidebar": "从侧边栏隐藏",
+    "Open in Remote": "在远程环境中打开"
   },
   "menuPatterns": [
     {
@@ -343,7 +347,10 @@
       "Save": "保存",
       "WSL distro not found": "未找到指定的 WSL 发行版",
       "Antigravity opened on Windows instead.": "Antigravity 已改为在 Windows 本地模式打开。",
-      "Connection info": "连接信息"
+      "Connection info": "连接信息",
+      "Open workspace": "打开工作区",
+      "Open workspaces": "打开多个工作区",
+      "Select Download Folder": "选择下载文件夹"
     },
     "bilingualConfirm": {
       "Confirm Quit": "确认退出 (Confirm Quit)",

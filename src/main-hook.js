@@ -524,13 +524,9 @@ function hasTranslatableMenuItem(menuInstance, translator) {
   return false;
 }
 
-function installPluginSidecarInjector(electron, options = {}) {
-  if (!electron || !electron.app || typeof electron.app.on !== 'function') {
-    return { active: false };
-  }
-
+function createSidecarPayloadGetter(options = {}) {
   let cachedPayload;
-  function getPayload() {
+  return function getPayload() {
     if (cachedPayload !== undefined) return cachedPayload;
     if (typeof options.sidecarPayloadSource === 'string') {
       cachedPayload = options.sidecarPayloadSource;
@@ -552,28 +548,140 @@ function installPluginSidecarInjector(electron, options = {}) {
     } catch (_) {}
     cachedPayload = '';
     return cachedPayload;
+  };
+}
+
+function wrapPluginProtocolHandler(origHandler, getPayload) {
+  if (typeof origHandler !== 'function') return origHandler;
+  return async function nawePluginProtocolHandler(request, ...rest) {
+    let isPreload = false;
+    try {
+      if (request && typeof request.url === 'string' && request.url.startsWith('plugin://')) {
+        isPreload = new URL(request.url).pathname === '/preload.js';
+      }
+    } catch (_) {}
+
+    const res = await origHandler.call(this, request, ...rest);
+    if (!isPreload || !res || res.status !== 200 || typeof res.text !== 'function') {
+      return res;
+    }
+
+    const payload = typeof getPayload === 'function' ? getPayload() : '';
+    if (!payload) return res;
+
+    try {
+      const origJs = await res.text();
+      const body = origJs.includes('/* [NAWE-PRELOAD-ENGINE-BEGIN] */')
+        ? origJs
+        : `${origJs}\n${payload}`;
+      const headers = new Headers(res.headers);
+      headers.delete('content-length');
+      return new Response(body, {
+        status: res.status,
+        statusText: res.statusText,
+        headers,
+      });
+    } catch (_) {
+      return res;
+    }
+  };
+}
+
+const LOCAL_SIDECAR_HTTP_RE = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\]|::1)(?::\d+)?(?:\/|$)/i;
+const registeredFramePreloadSessions = new WeakSet();
+
+function isLocalSidecarUrl(url) {
+  return typeof url === 'string' && (url.startsWith('plugin://') || LOCAL_SIDECAR_HTTP_RE.test(url));
+}
+
+function registerDefaultSessionFramePreload(electron, options = {}) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const framePreloadPath = options.framePreloadPath || path.join(__dirname, 'nawe-frame-preload.js');
+
+    const doRegister = () => {
+      try {
+        const defaultSession = electron && electron.session && electron.session.defaultSession;
+        if (
+          !defaultSession ||
+          typeof defaultSession !== 'object' ||
+          registeredFramePreloadSessions.has(defaultSession) ||
+          typeof defaultSession.registerPreloadScript !== 'function' ||
+          !fs.existsSync(framePreloadPath)
+        ) {
+          return false;
+        }
+        registeredFramePreloadSessions.add(defaultSession);
+        defaultSession.registerPreloadScript({
+          type: 'frame',
+          filePath: framePreloadPath,
+        });
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (electron && electron.app && typeof electron.app.isReady === 'function') {
+      if (electron.app.isReady()) {
+        doRegister();
+      } else if (typeof electron.app.whenReady === 'function') {
+        Promise.resolve(electron.app.whenReady()).then(doRegister).catch(() => {});
+      }
+    } else if (electron && electron.app && typeof electron.app.whenReady === 'function') {
+      Promise.resolve(electron.app.whenReady()).then(doRegister).catch(() => {});
+    } else {
+      doRegister();
+    }
+  } catch (_) {}
+}
+
+function installPluginSidecarInjector(electron, options = {}, getPayload = createSidecarPayloadGetter(options)) {
+  registerDefaultSessionFramePreload(electron, options);
+
+  if (!electron || !electron.app || typeof electron.app.on !== 'function') {
+    return { active: false };
+  }
+
+  function injectFrame(frame) {
+    try {
+      if (
+        !frame ||
+        !isLocalSidecarUrl(frame.url) ||
+        typeof frame.executeJavaScript !== 'function'
+      ) {
+        return;
+      }
+      const payload = getPayload();
+      if (!payload) return;
+      Promise.resolve(frame.executeJavaScript(payload, false)).catch(() => {});
+    } catch (_) {}
   }
 
   electron.app.on('web-contents-created', (_ev, contents) => {
     if (!contents || typeof contents.on !== 'function') return;
-    contents.on('did-frame-finish-load', (event, _isMainFrame, frameProcessId, frameRoutingId) => {
+    if (typeof contents.getType === 'function' && contents.getType() === 'webview') return;
+
+    contents.on('dom-ready', () => {
+      try {
+        const mf = contents.mainFrame;
+        const frames = mf && Array.isArray(mf.framesInSubtree) ? mf.framesInSubtree : [];
+        for (const f of frames) {
+          if (f && f !== mf && isLocalSidecarUrl(f.url)) injectFrame(f);
+        }
+      } catch (_) {}
+    });
+    contents.on('did-frame-finish-load', (event, isMainFrame, frameProcessId, frameRoutingId) => {
       try {
         const frame =
           (event && event.frame) ||
           (electron.webFrameMain && typeof electron.webFrameMain.fromId === 'function'
             ? electron.webFrameMain.fromId(frameProcessId, frameRoutingId)
             : null);
-        if (
-          !frame ||
-          typeof frame.url !== 'string' ||
-          !frame.url.startsWith('plugin://') ||
-          typeof frame.executeJavaScript !== 'function'
-        ) {
-          return;
-        }
-        const payload = getPayload();
-        if (!payload) return;
-        Promise.resolve(frame.executeJavaScript(payload, false)).catch(() => {});
+        if (!frame || typeof frame.url !== 'string') return;
+        const allowed = frame.url.startsWith('plugin://') || (isMainFrame === false && isLocalSidecarUrl(frame.url));
+        if (allowed) injectFrame(frame);
       } catch (_) {}
     });
   });
@@ -950,8 +1058,22 @@ function installMainHook(electron, dict, options = {}) {
   } catch (_) {}
 
   // 1.6 为 plugin:// 扩展侧边面板（如 Swarm Board）安全注入本地渲染翻译引擎
+  const getSidecarPayload = createSidecarPayloadGetter(options);
   try {
-    installPluginSidecarInjector(electron, options);
+    installPluginSidecarInjector(electron, options, getSidecarPayload);
+  } catch (_) {}
+
+  // 1.7 代理 protocol.handle('plugin', ...)，直接向 /preload.js 注入翻译引擎避免外部字体阻塞渲染
+  try {
+    if (electron.protocol && typeof electron.protocol.handle === 'function') {
+      const origProtoHandle = electron.protocol.handle.bind(electron.protocol);
+      safeOverride(electron.protocol, 'handle', function naweProtocolHandle(scheme, handler) {
+        if (scheme === 'plugin' && typeof handler === 'function') {
+          return origProtoHandle(scheme, wrapPluginProtocolHandler(handler, getSidecarPayload));
+        }
+        return origProtoHandle(scheme, handler);
+      });
+    }
   } catch (_) {}
 
   // 2. 代理 Tray.prototype.setContextMenu（覆盖托盘右键与动态智能体计数）
@@ -1079,10 +1201,11 @@ function createElectronProxy(realElectron, dict, options = {}) {
   const rawToLocalizedMenu = new WeakMap();
   let lastRawAppMenu = null;
 
+  const getSidecarPayload = createSidecarPayloadGetter(options);
   if (realElectron.app && !sidecarInjectedApps.has(realElectron)) {
     sidecarInjectedApps.add(realElectron);
     try {
-      installPluginSidecarInjector(realElectron, options);
+      installPluginSidecarInjector(realElectron, options, getSidecarPayload);
     } catch (_) {}
   }
 
@@ -1358,11 +1481,46 @@ function createElectronProxy(realElectron, dict, options = {}) {
     });
   }
 
+  const realProtocol = realElectron.protocol;
+  let protocolProxy = realProtocol;
+  if (realProtocol) {
+    const origProtoHandle =
+      typeof realProtocol.handle === 'function' ? realProtocol.handle.bind(realProtocol) : null;
+    const wrappedProtoHandle = origProtoHandle
+      ? function naweProxyProtocolHandle(scheme, handler) {
+          if (scheme === 'plugin' && typeof handler === 'function') {
+            return origProtoHandle(scheme, wrapPluginProtocolHandler(handler, getSidecarPayload));
+          }
+          return origProtoHandle(scheme, handler);
+        }
+      : origProtoHandle;
+
+    protocolProxy = new Proxy({}, {
+      get(_t, prop) {
+        if (prop === 'handle' && wrappedProtoHandle) return wrappedProtoHandle;
+        const val = Reflect.get(realProtocol, prop);
+        return typeof val === 'function' ? val.bind(realProtocol) : val;
+      },
+      has(_t, prop) {
+        return prop in realProtocol;
+      },
+      ownKeys() {
+        return Reflect.ownKeys(realProtocol);
+      },
+      getOwnPropertyDescriptor(_t, prop) {
+        const val = prop === 'handle' && wrappedProtoHandle ? wrappedProtoHandle : Reflect.get(realProtocol, prop);
+        if (val === undefined && !(prop in realProtocol)) return undefined;
+        return { value: val, writable: true, enumerable: true, configurable: true };
+      },
+    });
+  }
+
   const resolveElectronProp = (prop) => {
     if (prop === 'Menu') return menuProxy;
     if (prop === 'ipcMain') return ipcMainProxy;
     if (prop === 'dialog') return dialogProxy;
     if (prop === 'Tray') return trayProxy;
+    if (prop === 'protocol') return protocolProxy;
     return Reflect.get(realElectron, prop);
   };
 

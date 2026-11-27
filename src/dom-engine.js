@@ -696,6 +696,7 @@
       isSubframe = true;
     }
     let subframeMessageHandler = null;
+    let parentMessageHandler = null;
 
     const hasWeakRef = typeof WeakRef === 'function';
     const wrapRef = (obj) => (hasWeakRef ? new WeakRef(obj) : { deref: () => obj });
@@ -1100,6 +1101,12 @@
           win.removeEventListener('message', subframeMessageHandler);
         } catch (_) {}
         subframeMessageHandler = null;
+      }
+      if (parentMessageHandler && typeof win.removeEventListener === 'function') {
+        try {
+          win.removeEventListener('message', parentMessageHandler);
+        } catch (_) {}
+        parentMessageHandler = null;
       }
     }
 
@@ -1526,6 +1533,16 @@
             if (globalScope) globalScope.__naweTranslateContextMenuItems = translatePreloadMenuItems;
             if (win) win.__naweTranslateContextMenuItems = translatePreloadMenuItems;
           } catch (_) {}
+          if (typeof win.addEventListener === 'function' && !parentMessageHandler) {
+            parentMessageHandler = (e) => {
+              try {
+                if (e && e.data && e.data.__naweQueryMode === true && e.source && typeof e.source.postMessage === 'function') {
+                  e.source.postMessage({ __naweSyncMode: langMode }, '*');
+                }
+              } catch (_) {}
+            };
+            win.addEventListener('message', parentMessageHandler);
+          }
         }
         if (isSubframe && typeof win.addEventListener === 'function' && !subframeMessageHandler) {
           subframeMessageHandler = (e) => {
@@ -1537,6 +1554,11 @@
             } catch (_) {}
           };
           win.addEventListener('message', subframeMessageHandler);
+          if (win.parent && win.parent !== win && typeof win.parent.postMessage === 'function') {
+            try {
+              win.parent.postMessage({ __naweQueryMode: true }, '*');
+            } catch (_) {}
+          }
         }
         const target = doc.documentElement || doc.body;
         if (!target) return;

@@ -2668,6 +2668,228 @@
       "pattern": "^Question\\s+from\\s+(.+)$",
       "flags": "i",
       "replacement": "来自 $1 的询问"
+    },
+    {
+      "keywords": [
+        "agent",
+        "change",
+        "model",
+        "menu"
+      ],
+      "pattern": "^Agent:\\s*(.+?)\\.\\s*Change\\s+it\\s+in\\s+the\\s+model\\s+menu\\.$",
+      "flags": "i",
+      "replacement": "智能体：$1。可在模型菜单中切换。"
+    },
+    {
+      "keywords": [
+        "orchestrator"
+      ],
+      "pattern": "^Orchestrator\\s+\\(([^)]+)\\)$",
+      "flags": "",
+      "replacement": "智能编排 ($1)"
+    },
+    {
+      "keywords": [
+        "hey",
+        "build",
+        "today"
+      ],
+      "pattern": "^Hey\\s+(.+?),\\s+what\\s+should\\s+we\\s+build\\s+today\\?$",
+      "flags": "",
+      "replacement": "嗨，$1，今天想一起构建点什么？"
+    },
+    {
+      "keywords": [
+        "welcome",
+        "back",
+        "pick",
+        "up"
+      ],
+      "pattern": "^Welcome\\s+back,\\s+(.+?)\\.\\s+Where\\s+should\\s+we\\s+pick\\s+up\\?$",
+      "flags": "",
+      "replacement": "欢迎回来，$1。我们从哪里继续？"
+    },
+    {
+      "keywords": [
+        "good",
+        "see",
+        "next"
+      ],
+      "pattern": "^Good\\s+to\\s+see\\s+you,\\s+(.+?)\\.\\s+What's\\s+next\\?$",
+      "flags": "",
+      "replacement": "很高兴见到你，$1。接下来做什么？"
+    },
+    {
+      "keywords": [
+        "native",
+        "swarm",
+        "narrator"
+      ],
+      "pattern": "^ONLY\\s+for\\s+the\\s+native-swarm\\s+worker\\s+whose\\s+brief\\s+says\\s+it\\s+is\\s+the\\s+narrator[\\s\\S]*$",
+      "flags": "",
+      "replacement": "（仅限智能体集群记录员节点使用）监听留言板并实时维护总览视图数据（view.json）。"
+    },
+    {
+      "keywords": [
+        "task",
+        "tasks",
+        "running"
+      ],
+      "pattern": "^(\\d+)\\s+tasks?\\s+running$",
+      "flags": "i",
+      "replacement": "$1 个任务运行中"
+    },
+    {
+      "keywords": [
+        "restore",
+        "split",
+        "view"
+      ],
+      "pattern": "^(.+?)\\s+—\\s+restore\\s+split\\s+view$",
+      "flags": "i",
+      "replacement": "$1 — 恢复分栏视图"
+    },
+    {
+      "keywords": [
+        "scroll",
+        "bottom",
+        "unread"
+      ],
+      "pattern": "^Scroll\\s+to\\s+Bottom\\s+\\((\\d+)\\s+unread\\)$",
+      "flags": "i",
+      "replacement": "滚动到底部（$1 条未读）"
+    },
+    {
+      "keywords": [
+        "see",
+        "more"
+      ],
+      "pattern": "^See\\s+(\\d+)\\s+more(?:\\s+(.+))?$",
+      "flags": "i",
+      "replacement": "再查看 $1 项"
+    },
+    {
+      "keywords": [
+        "more"
+      ],
+      "pattern": "^\\+(\\d+)\\s+more$",
+      "flags": "i",
+      "replacement": "还有 $1 项"
+    },
+    {
+      "keywords": [
+        "zoom",
+        "reset",
+        "fit"
+      ],
+      "pattern": "^Zoom\\s+(\\d+)%,\\s*reset\\s+to\\s+fit$",
+      "flags": "i",
+      "replacement": "缩放 $1%（点击重置自适应）"
+    },
+    {
+      "keywords": [
+        "hide",
+        "non",
+        "admin"
+      ],
+      "pattern": "^Hide\\s+non-admin\\s*\\((\\d+)\\)$",
+      "flags": "i",
+      "replacement": "隐藏非管理员项 ($1)"
+    },
+    {
+      "keywords": [
+        "show",
+        "all"
+      ],
+      "pattern": "^Show\\s+all\\s*\\((\\d+)\\)$",
+      "flags": "i",
+      "replacement": "显示全部 ($1)"
+    },
+    {
+      "keywords": [
+        "steps",
+        "done"
+      ],
+      "pattern": "^(\\d+)\\s+of\\s+(\\d+)\\s+steps\\s+done$",
+      "flags": "i",
+      "replacement": "已完成 $1 / $2 步"
+    },
+    {
+      "keywords": [
+        "working",
+        "quietly",
+        "background"
+      ],
+      "pattern": "^(\\d+)\\s+agents?\\s+(?:is|are)\\s+working\\s+quietly\\s+in\\s+the\\s+background\\.\\s+Anything\\s+that\\s+needs\\s+your\\s+input\\s+will\\s+show\\s+up\\s+here\\.$",
+      "flags": "i",
+      "replacement": "$1 个智能体正在后台静默运行，需要你输入或确认的事项会显示在这里。"
+    },
+    {
+      "keywords": [
+        "show",
+        "more",
+        "subagent",
+        "subagents"
+      ],
+      "pattern": "^Show\\s+(\\d+)\\s+more\\s+subagents?$",
+      "flags": "i",
+      "replacement": "再显示 $1 个子智能体"
+    },
+    {
+      "keywords": [
+        "maximum",
+        "attachments",
+        "reached"
+      ],
+      "pattern": "^Maximum\\s+(\\d+)\\s+attachments\\s+reached$",
+      "flags": "i",
+      "replacement": "已达到附件数量上限（最多 $1 个）"
+    },
+    {
+      "keywords": [
+        "downloads",
+        "complete"
+      ],
+      "pattern": "^Downloads,\\s*(\\d+)%\\s+complete$",
+      "flags": "i",
+      "replacement": "下载进度：已完成 $1%"
+    },
+    {
+      "keywords": [
+        "go",
+        "board"
+      ],
+      "pattern": "^Go\\s+to\\s+#(\\d+)\\s+on\\s+the\\s+Board$",
+      "flags": "i",
+      "replacement": "前往留言板 #$1"
+    },
+    {
+      "keywords": [
+        "narrator",
+        "read"
+      ],
+      "pattern": "^Narrator\\s+read\\s+up\\s+to\\s+#(\\d+)\\s+of\\s+(\\d+)$",
+      "flags": "i",
+      "replacement": "记录员已读至 #$1 / 共 $2 条"
+    },
+    {
+      "keywords": [
+        "posted",
+        "click",
+        "show"
+      ],
+      "pattern": "^Posted\\s+in\\s+(#[^\\s;]+);\\s+click\\s+to\\s+show\\s+only\\s+\\1$",
+      "flags": "i",
+      "replacement": "发布于 $1；点击仅显示 $1"
+    },
+    {
+      "keywords": [
+        "coordinator",
+        "done"
+      ],
+      "pattern": "^Coordinator\\s+·\\s+(\\d+)\\s+of\\s+(\\d+)\\s+done$",
+      "flags": "i",
+      "replacement": "协调器 · 已完成 $1 / $2"
     }
   ]
 }

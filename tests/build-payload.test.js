@@ -24,10 +24,15 @@ test('Generated main-hook and self-contained preload payloads parse cleanly with
   const dicts = builder.loadAndValidateDictionaries();
   const mainHookSrc = builder.buildMainHookModuleSource(dicts);
   const preloadSrc = builder.buildPreloadInjectionSource(dicts, { version: '1.0.0' });
+  const framePreloadSrc = builder.buildFramePreloadSource(preloadSrc);
 
   assert.doesNotThrow(() => new vm.Script(mainHookSrc, { filename: 'dist/nawe-main-hook.js' }));
   assert.doesNotThrow(() => new vm.Script(preloadSrc, { filename: 'dist/preload.js' }));
+  assert.doesNotThrow(() => new vm.Script(framePreloadSrc, { filename: 'dist/nawe-frame-preload.js' }));
   assert.ok(!/\brequire\s*\(/.test(preloadSrc), 'Preload injection must not call require()');
+  assert.ok(!/\brequire\s*\(/.test(framePreloadSrc), 'Frame preload must not call require()');
+  assert.match(framePreloadSrc, /window\.top !== window/);
+  assert.match(framePreloadSrc, /plugin:/);
   assert.match(mainHookSrc, /installModuleLoadHook/);
 
   const rawPreload = 'showContextMenu: (items) => electron_1.ipcRenderer.invoke(\'window:show-context-menu\', items),';
@@ -67,6 +72,9 @@ test('End-to-end buildModifications + patcher dry-run packs and verifies cleanly
     assert.ok(asar.readFileText(res.stagedFile, 'dist/nawe-main-hook.js'));
     assert.match(asar.readFileText(res.stagedFile, 'dist/main.js'), /NAWE-MAIN-HOOK-BEGIN/);
     assert.match(asar.readFileText(res.stagedFile, 'dist/preload.js'), /NAWE-PRELOAD-ENGINE-BEGIN/);
+    const framePreload = asar.readFileText(res.stagedFile, 'dist/nawe-frame-preload.js');
+    assert.match(framePreload, /NAWE-FRAME-PRELOAD-BEGIN/);
+    assert.match(framePreload, /NAWE-PRELOAD-ENGINE-BEGIN/);
     assert.match(
       asar.readFileText(res.stagedFile, 'dist/ideInstall/wizardPreload.js'),
       /NAWE-PRELOAD-ENGINE-BEGIN/

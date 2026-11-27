@@ -1590,5 +1590,268 @@ test('Open SSH Host modal and SSH remote security prompts translate accurately',
   assert.equal(errBanner.textContent, '无法连接到 prod-box');
 });
 
+test('Agent selector, selected Agent chip/tooltip, Orchestrator rows, Agent modals, and Home greetings translate cleanly', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  const docsTooltip = new MockElement('div');
+  docsTooltip.appendChild(new MockText('Click to Open Docs'));
+  const docsLink = new MockElement('a', { 'aria-label': 'Click to open docs' });
+
+  const mainAgentRow = new MockElement('div');
+  mainAgentRow.appendChild(new MockText('Main Agent'));
+  const loadingScripts = new MockElement('div');
+  loadingScripts.appendChild(new MockText('Getting scripts...'));
+  const newScriptRow = new MockElement('div');
+  newScriptRow.appendChild(new MockText('New Agent Script'));
+  const scriptChip = new MockElement('div', { title: 'Agent Script' });
+  const optionsBtn = new MockElement('button', { 'aria-label': 'Agent options' });
+
+  const agentTip = new MockElement('div');
+  agentTip.appendChild(new MockText('Agent: '));
+  agentTip.appendChild(new MockText('firestore-rules-author'));
+  agentTip.appendChild(new MockText('. Change it in the model menu.'));
+
+  const standaloneTip = new MockElement('span');
+  standaloneTip.appendChild(new MockText('. Change it in the model menu.'));
+
+  const orchCarbon = new MockElement('span');
+  orchCarbon.appendChild(new MockText('Orchestrator (Carbon)'));
+  const orchHydrogen = new MockElement('span');
+  orchHydrogen.appendChild(new MockText('Orchestrator (Hydrogen)'));
+  const orchFuture = new MockElement('span');
+  orchFuture.appendChild(new MockText('Orchestrator (Xenon)'));
+
+  const greetingNamed = new MockElement('h1');
+  greetingNamed.appendChild(new MockText("Good to see you, 张三. What's next?"));
+  const greetingUnnamed = new MockElement('h1');
+  greetingUnnamed.appendChild(new MockText("Good to see you. What's next?"));
+
+  const modalTitle = new MockElement('h2');
+  modalTitle.appendChild(new MockText('New Coordinator'));
+  const createAgentBtn = new MockElement('button');
+  createAgentBtn.appendChild(new MockText('Create Agent'));
+  const goalTextarea = new MockElement('textarea', {
+    placeholder: 'What should this agent accomplish?',
+  });
+  const settingsTitle = new MockElement('h2');
+  settingsTitle.appendChild(new MockText('Coordinator settings'));
+  const startingLabel = new MockElement('span');
+  startingLabel.appendChild(new MockText('Starting the conversation\u2026'));
+
+  for (const el of [
+    docsTooltip,
+    docsLink,
+    mainAgentRow,
+    loadingScripts,
+    newScriptRow,
+    scriptChip,
+    optionsBtn,
+    agentTip,
+    standaloneTip,
+    orchCarbon,
+    orchHydrogen,
+    orchFuture,
+    greetingNamed,
+    greetingUnnamed,
+    modalTitle,
+    createAgentBtn,
+    goalTextarea,
+    settingsTitle,
+    startingLabel,
+  ]) {
+    body.appendChild(el);
+  }
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(docsTooltip.textContent, '点击查看文档');
+  assert.equal(docsLink.getAttribute('aria-label'), '点击查看文档');
+  assert.equal(mainAgentRow.textContent, '主智能体');
+  assert.equal(loadingScripts.textContent, '正在获取脚本...');
+  assert.equal(newScriptRow.textContent, '新建智能体脚本');
+  assert.equal(scriptChip.getAttribute('title'), '智能体脚本');
+  assert.equal(optionsBtn.getAttribute('aria-label'), '智能体选项');
+  assert.equal(agentTip.textContent, '智能体：firestore-rules-author。可在模型菜单中切换。');
+  assert.equal(standaloneTip.textContent, '。可在模型菜单中切换。');
+  assert.equal(orchCarbon.textContent, '智能编排 (Carbon)');
+  assert.equal(orchHydrogen.textContent, '智能编排 (Hydrogen)');
+  assert.equal(orchFuture.textContent, '智能编排 (Xenon)');
+  assert.equal(greetingNamed.textContent, '很高兴见到你，张三。接下来做什么？');
+  assert.equal(greetingUnnamed.textContent, '很高兴见到你，接下来做什么？');
+  assert.equal(modalTitle.textContent, '新建协调器');
+  assert.equal(createAgentBtn.textContent, '创建智能体');
+  assert.equal(goalTextarea.getAttribute('placeholder'), '这个智能体需要完成什么任务？');
+  assert.equal(settingsTitle.textContent, '协调器设置');
+  assert.equal(startingLabel.textContent, '正在启动对话…');
+});
+
+test('Side Question empty state, Swarm Board empty/board/hive UI, and Antigravity 2.36.0 features translate cleanly', () => {
+  const dom = createMockDom();
+  const { body, MockElement, MockText } = dom;
+
+  // 1) Screenshot 1: Side Question
+  const sqEmpty = new MockElement('span');
+  sqEmpty.appendChild(new MockText('Ask a side question without interrupting the main conversation'));
+
+  // 2) Screenshot 2: Swarm Board empty state with split <code>/swarm</code>
+  const swarmTitle = new MockElement('h2');
+  swarmTitle.appendChild(new MockText('No swarm in this conversation'));
+  const swarmBody = new MockElement('p');
+  swarmBody.appendChild(
+    new MockText(
+      'Open this pane from a conversation to see its swarm. Swarms started there appear here automatically; start one with '
+    )
+  );
+  const swarmCode = new MockElement('code');
+  swarmCode.appendChild(new MockText('/swarm'));
+  swarmBody.appendChild(swarmCode);
+  swarmBody.appendChild(new MockText('.'));
+  const swarmWatching = new MockElement('p');
+  swarmWatching.appendChild(new MockText('Watching for a swarm'));
+
+  // 3) 2.36.0 Floating Composer + High-Risk + Credentials + Feeds + Org Policy + Git Worktree Fork
+  const composerStatus = new MockElement('button', {
+    'aria-label': '3 tasks running \u2014 restore split view',
+  });
+  composerStatus.appendChild(new MockText('3 tasks running'));
+  const subagentNeeds = new MockElement('span');
+  subagentNeeds.appendChild(new MockText('Subagent needs approval'));
+  const unreadPill = new MockElement('span');
+  unreadPill.appendChild(new MockText('Unread message'));
+  const addEnvBtn = new MockElement('button');
+  addEnvBtn.appendChild(new MockText('Add Environment Variable'));
+  const delSecretBtn = new MockElement('button');
+  delSecretBtn.appendChild(new MockText('Delete Network Secret'));
+  const feedsEmpty = new MockElement('p');
+  feedsEmpty.appendChild(
+    new MockText('Nothing needs your attention right now. New deliverables, docs, and agent updates will appear here.')
+  );
+  const waitingYou = new MockElement('span');
+  waitingYou.appendChild(new MockText('Waiting on you'));
+  const expandFull = new MockElement('button');
+  expandFull.appendChild(new MockText('Expand full view'));
+  const orgDisabled = new MockElement('span');
+  orgDisabled.appendChild(new MockText('Disabled by your organization'));
+  const orgWallet = new MockElement('h3');
+  orgWallet.appendChild(new MockText('Organization prepaid wallet is empty'));
+  const forkWorktree = new MockElement('div', { role: 'menuitem' });
+  forkWorktree.appendChild(new MockText('Fork in New Git Worktree'));
+
+  for (const el of [
+    sqEmpty,
+    swarmTitle,
+    swarmBody,
+    swarmWatching,
+    composerStatus,
+    subagentNeeds,
+    unreadPill,
+    addEnvBtn,
+    delSecretBtn,
+    feedsEmpty,
+    waitingYou,
+    expandFull,
+    orgDisabled,
+    orgWallet,
+    forkWorktree,
+  ]) {
+    body.appendChild(el);
+  }
+
+  installDomEngine(dom.win, bundle);
+
+  assert.equal(sqEmpty.textContent, '在不打断主对话的情况下发起旁白追问');
+  assert.equal(swarmTitle.textContent, '当前对话中暂无智能体集群');
+  assert.equal(swarmCode.textContent, '/swarm', '/swarm 指令必须保持英文原样');
+  assert.ok(swarmBody.textContent.includes('请从对话中打开此面板以查看其智能体集群'));
+  assert.ok(swarmBody.textContent.includes('/swarm'));
+  assert.equal(swarmWatching.textContent, '正在监听智能体集群');
+
+  assert.equal(composerStatus.textContent, '3 个任务运行中');
+  assert.equal(composerStatus.getAttribute('aria-label'), '3 tasks running — 恢复分栏视图');
+  assert.equal(subagentNeeds.textContent, '子智能体需要人工批准 (Subagent needs approval)');
+  assert.equal(unreadPill.textContent, '有未读消息');
+  assert.equal(addEnvBtn.textContent, '添加环境变量');
+  assert.equal(delSecretBtn.textContent, '删除网络密钥 (Delete Network Secret)');
+  assert.equal(
+    feedsEmpty.textContent,
+    '当前没有需要你处理的事项。新的交付物、文档与智能体进展会显示在这里。'
+  );
+  assert.equal(waitingYou.textContent, '等待你确认');
+  assert.equal(expandFull.textContent, '展开全屏视图');
+  assert.equal(orgDisabled.textContent, '已被你的组织禁用');
+  assert.equal(orgWallet.textContent, '组织预付余额已用尽');
+  assert.equal(forkWorktree.textContent, '在新 Git 工作树中派生');
+});
+
+test('Subframe Swarm Board syncs initial bilingual/zh/en mode via parent postMessage handshake and translates innerHTML /swarm paragraph', () => {
+  const parentDom = createMockDom();
+  const childDom = createMockDom();
+
+  const attachMsgBus = (win) => {
+    const listeners = [];
+    win.addEventListener = (ev, fn) => {
+      if (ev === 'message') listeners.push(fn);
+    };
+    win.removeEventListener = (ev, fn) => {
+      if (ev === 'message') {
+        const i = listeners.indexOf(fn);
+        if (i !== -1) listeners.splice(i, 1);
+      }
+    };
+    win.postMessage = (data, _origin, source) => {
+      for (const fn of [...listeners]) {
+        fn({ data, source: source || win });
+      }
+    };
+  };
+
+  attachMsgBus(parentDom.win);
+  attachMsgBus(childDom.win);
+  parentDom.win.top = parentDom.win;
+  parentDom.win.parent = parentDom.win;
+  childDom.win.location = { protocol: 'plugin:', hostname: 'swarm-board' };
+  childDom.win.top = parentDom.win;
+  childDom.win.parent = {
+    postMessage(data) {
+      parentDom.win.postMessage(data, '*', {
+        postMessage(reply) {
+          childDom.win.postMessage(reply, '*', childDom.win.parent);
+        },
+      });
+    },
+  };
+
+  const title = new childDom.MockElement('h2');
+  title.appendChild(new childDom.MockText('No swarm in this conversation'));
+  const desc = new childDom.MockElement('p');
+  desc.appendChild(
+    new childDom.MockText(
+      'Swarms started in this conversation appear here automatically, with their board, members and @mention graph. Start one with '
+    )
+  );
+  const code = new childDom.MockElement('code');
+  code.appendChild(new childDom.MockText('/swarm'));
+  desc.appendChild(code);
+  desc.appendChild(new childDom.MockText('.'));
+  childDom.body.appendChild(title);
+  childDom.body.appendChild(desc);
+
+  // 父窗口先设为中英对照，再安装子帧（模拟在 bilingual 模式下打开侧边栏 Swarm 面板）
+  const { controller: parentCtrl } = installDomEngine(parentDom.win, bundle, { initialMode: 'bilingual' });
+  const { controller: childCtrl } = installDomEngine(childDom.win, bundle);
+
+  assert.equal(childCtrl.getMode(), 'bilingual');
+  assert.equal(title.textContent, '当前对话中暂无智能体集群 (No swarm in this conversation)');
+  assert.equal(code.textContent, '/swarm');
+
+  parentCtrl.setMode('zh');
+  childDom.win.postMessage({ __naweSyncMode: 'zh' }, '*', childDom.win.parent);
+  assert.equal(childCtrl.getMode(), 'zh');
+  assert.equal(title.textContent, '当前对话中暂无智能体集群');
+  assert.ok(desc.textContent.includes('在当前对话中启动的智能体集群会自动显示在这里'));
+  assert.ok(desc.textContent.includes('/swarm'));
+});
+
 
 

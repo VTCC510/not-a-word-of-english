@@ -19,7 +19,6 @@
     "Always allow this tool": "始终允许此工具 (Always allow this tool)",
     "Allow in Sandbox": "允许在沙盒内执行 (Allow in Sandbox)",
     "Allow Outside Sandbox": "允许在沙盒外执行 (Allow Outside Sandbox)",
-
     "Approve": "批准执行 (Approve)",
     "Approve Once": "仅批准这一次 (Approve Once)",
     "Approve All": "全部批准 (Approve All)",
@@ -34,7 +33,6 @@
     "Trust Workspace": "信任此工作区 (Trust Workspace)",
     "Grant Permission": "授予权限 (Grant Permission)",
     "Authorize": "授权 (Authorize)",
-
     "Deny": "拒绝 (Deny)",
     "Deny Once": "拒绝这一次 (Deny Once)",
     "Deny All": "全部拒绝 (Deny All)",
@@ -51,7 +49,6 @@
     "Terminate": "终止进程 (Terminate)",
     "Revoke": "撤销授权 (Revoke)",
     "Revoke Permission": "撤销权限 (Revoke Permission)",
-
     "Run": "运行 (Run)",
     "Run Command": "执行命令 (Run Command)",
     "Execute": "执行 (Execute)",
@@ -65,7 +62,6 @@
     "Review Command": "审查命令 (Review Command)",
     "Command": "命令行 (Command)",
     "Working Directory": "执行目录 (Working Directory)",
-
     "Delete": "删除 (Delete)",
     "Delete File": "删除文件 (Delete File)",
     "Delete Folder": "删除文件夹 (Delete Folder)",
@@ -86,7 +82,6 @@
     "Delete Group": "删除分组 (Delete Group)",
     "Undo to Here": "回滚到此处 (Undo to Here)",
     "This will permanently delete": "警告：此操作将永久删除 (This will permanently delete)",
-
     "Waiting for approval": "等待人工批准 (Waiting for approval)",
     "Waiting for your approval": "等待你的批准 (Waiting for your approval)",
     "Requires approval": "需要人工批准 (Requires approval)",
@@ -138,134 +133,234 @@
     "Revert file changes": "同时回滚文件改动 (Revert file changes)",
     "Stop execution": "停止执行 (Stop execution)",
     "Cancel (Ctrl+D)": "取消 (Cancel, Ctrl+D)",
-    "Accept updated host keys?": "是否接受更新后的主机密钥？ (Accept updated host keys?)"
+    "Accept updated host keys?": "是否接受更新后的主机密钥？ (Accept updated host keys?)",
+    "Subagent needs approval": "子智能体需要人工批准 (Subagent needs approval)",
+    "Needs permission to continue.": "需要权限授权以继续 (Needs permission to continue.)",
+    "Delete Environment Variable": "删除环境变量 (Delete Environment Variable)",
+    "Delete Network Secret": "删除网络密钥 (Delete Network Secret)",
+    "Deleted environment variables cannot be recovered.": "警告：环境变量删除后无法恢复。 (Deleted environment variables cannot be recovered.)",
+    "Deleted secrets cannot be recovered.": "警告：密钥删除后无法恢复。 (Deleted secrets cannot be recovered.)"
   },
   "patterns": [
     {
-      "keywords": ["requesting", "permission", "run"],
+      "keywords": [
+        "requesting",
+        "permission",
+        "run"
+      ],
       "pattern": "^Requesting\\s+permission\\s+to\\s+run\\s+([\\s\\S]+)$",
       "flags": "i",
       "replacement": "请求授权执行命令 (Requesting permission to run)：$1"
     },
     {
-      "keywords": ["requesting", "permission"],
+      "keywords": [
+        "requesting",
+        "permission"
+      ],
       "pattern": "^Requesting\\s+permission\\s+to\\s+([\\s\\S]+)$",
       "flags": "i",
       "replacement": "请求权限授权 (Requesting permission to)：$1"
     },
     {
-      "keywords": ["yes", "always", "allow", "conversation"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow",
+        "conversation"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+conversation$",
       "flags": "i",
       "replacement": "是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：'$1'"
     },
     {
-      "keywords": ["yes", "always", "allow"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+(workspace|project)$",
       "flags": "i",
       "replacement": "是，且在当前项目中始终允许 (Yes, and always allow in this $2)：'$1'"
     },
     {
-      "keywords": ["yes", "always", "allow", "session"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow",
+        "session"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+session$",
       "flags": "i",
       "replacement": "是，且在当前会话中始终允许 (Yes, and always allow in this session)：'$1'"
     },
     {
-      "keywords": ["yes", "always", "allow"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+'([\\s\\S]+)'$",
       "flags": "i",
       "replacement": "高风险：是，并永久始终允许 (Yes, and always allow)：'$1'"
     },
     {
-      "keywords": ["yes", "always", "allow", "conversation"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow",
+        "conversation"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+conversation$",
       "flags": "i",
       "replacement": "是，且在本次对话中始终允许 (Yes, and always allow in this conversation)：$1"
     },
     {
-      "keywords": ["yes", "always", "allow"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+(workspace|project)$",
       "flags": "i",
       "replacement": "是，且在当前项目中始终允许 (Yes, and always allow in this $2)：$1"
     },
     {
-      "keywords": ["yes", "always", "allow", "session"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow",
+        "session"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+session$",
       "flags": "i",
       "replacement": "是，且在当前会话中始终允许 (Yes, and always allow in this session)：$1"
     },
     {
-      "keywords": ["yes", "always", "allow"],
+      "keywords": [
+        "yes",
+        "always",
+        "allow"
+      ],
       "pattern": "^Yes,\\s+and\\s+always\\s+allow\\s+([\\s\\S]+)$",
       "flags": "i",
       "replacement": "高风险：是，并永久始终允许 (Yes, and always allow)：$1"
     },
     {
-      "keywords": ["yes", "allow", "conversation"],
+      "keywords": [
+        "yes",
+        "allow",
+        "conversation"
+      ],
       "pattern": "^Yes,\\s+allow\\s+'([\\s\\S]+)'\\s+(?:in|for)\\s+this\\s+conversation$",
       "flags": "i",
       "replacement": "是，在本次对话中允许 (Yes, allow in this conversation)：'$1'"
     },
     {
-      "keywords": ["yes", "allow", "conversation"],
+      "keywords": [
+        "yes",
+        "allow",
+        "conversation"
+      ],
       "pattern": "^Yes,\\s+allow\\s+([\\s\\S]+)\\s+(?:in|for)\\s+this\\s+conversation$",
       "flags": "i",
       "replacement": "是，在本次对话中允许 (Yes, allow in this conversation)：$1"
     },
     {
-      "keywords": ["delete", "side"],
+      "keywords": [
+        "delete",
+        "side"
+      ],
       "pattern": "^Delete\\s+side\\s+question:\\s*([\\s\\S]+)$",
       "flags": "i",
       "replacement": "删除旁白追问：$1 (Delete side question: $1)"
     },
     {
-      "keywords": ["allow", "run"],
+      "keywords": [
+        "allow",
+        "run"
+      ],
       "pattern": "^Allow\\s+([\\s\\S]+)\\s+to\\s+run\\s+this\\s+command\\??$",
       "flags": "i",
       "replacement": "是否允许 $1 执行此命令？ (Allow $1 to run this command?)"
     },
     {
-      "keywords": ["wants", "run"],
+      "keywords": [
+        "wants",
+        "run"
+      ],
       "pattern": "^(.+)\\s+wants\\s+to\\s+run\\s+a\\s+command$",
       "flags": "i",
       "replacement": "$1 请求执行一条终端命令 ($1 wants to run a command)"
     },
     {
-      "keywords": ["always", "allow"],
+      "keywords": [
+        "always",
+        "allow"
+      ],
       "pattern": "^Always\\s+allow\\s+([\\s\\S]+)$",
       "flags": "i",
       "replacement": "始终允许 $1 (Always allow $1)"
     },
     {
-      "keywords": ["delete"],
+      "keywords": [
+        "delete"
+      ],
       "pattern": "^Delete\\s+(\\d+)\\s+(files?|items?|conversations?)\\??$",
       "flags": "i",
       "replacement": "删除 $1 个项目？ (Delete $1 $2?)"
     },
     {
-      "keywords": ["allow", "access"],
+      "keywords": [
+        "allow",
+        "access"
+      ],
       "pattern": "^Allow\\s+access\\s+to\\s+([\\s\\S]+)\\??$",
       "flags": "i",
       "replacement": "是否允许访问 $1？ (Allow access to $1?)"
     },
     {
-      "keywords": ["allow"],
+      "keywords": [
+        "allow"
+      ],
       "pattern": "^Allow\\s+([\\s\\S]+)\\?$",
       "flags": "",
       "replacement": "是否允许 $1？ (Allow $1?)"
     },
     {
-      "keywords": ["trust"],
+      "keywords": [
+        "trust"
+      ],
       "pattern": "^Trust\\s+([^\\s?]+)\\?$",
       "flags": "",
       "replacement": "是否信任主机 $1？ (Trust $1?)"
     },
     {
-      "keywords": ["connect", "anyway"],
+      "keywords": [
+        "connect",
+        "anyway"
+      ],
       "pattern": "^Connect\\s+to\\s+(.+?)\\s+anyway\\?$",
       "flags": "i",
       "replacement": "警告：是否仍要连接到 $1？ (Connect to $1 anyway?)"
+    },
+    {
+      "keywords": [
+        "needs",
+        "use",
+        "computer"
+      ],
+      "pattern": "^([^\\n]+?)\\s+needs\\s+(.+?)\\s+to\\s+use\\s+your\\s+computer\\.$",
+      "flags": "",
+      "replacement": "$1 需要 $2 权限才能控制你的电脑 ($1 needs $2 to use your computer.)"
+    },
+    {
+      "keywords": [
+        "stop",
+        "selected"
+      ],
+      "pattern": "^Stop\\s+(\\d+)\\s+selected$",
+      "flags": "i",
+      "replacement": "停止所选的 $1 项 (Stop $1 selected)"
     }
   ]
 }

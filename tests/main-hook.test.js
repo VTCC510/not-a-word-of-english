@@ -813,3 +813,142 @@ test('updater:quit-and-install and updater:apply trigger detached post-update au
   }
 });
 
+test('plugin:// sidecar injector covers defaultSession.registerPreloadScript(frame), protocol.handle(/preload.js), and webContents dom-ready subframes in hook and proxy modes', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const payloadSource = '/* [NAWE-PRELOAD-ENGINE-BEGIN] */window.__naweSidecar=1;/* [NAWE-PRELOAD-ENGINE-END] */';
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nawe-frame-preload-'));
+  const framePreloadFile = path.join(tmpDir, 'nawe-frame-preload.js');
+  fs.writeFileSync(framePreloadFile, '// frame preload\n', 'utf8');
+
+  async function verifyMode(setupFn) {
+    const protoHandlers = new Map();
+    const appListeners = new Map();
+    const wcListeners = new Map();
+    const registeredPreloads = [];
+    const executed = [];
+
+    const env = createMockElectron();
+    env.electron.protocol = {
+      handle(scheme, fn) {
+        protoHandlers.set(scheme, fn);
+      },
+    };
+    env.electron.session = {
+      defaultSession: {
+        registerPreloadScript(spec) {
+          registeredPreloads.push(spec);
+        },
+      },
+    };
+    env.electron.app = {
+      isReady: () => false,
+      whenReady: () => Promise.resolve(),
+      on(ev, fn) {
+        if (!appListeners.has(ev)) appListeners.set(ev, []);
+        appListeners.get(ev).push(fn);
+      },
+    };
+
+    const api = setupFn(env.electron);
+    await new Promise((r) => setImmediate(r));
+    assert.equal(registeredPreloads.length, 1);
+    assert.deepEqual(registeredPreloads[0], { type: 'frame', filePath: framePreloadFile });
+
+    api.protocol.handle('plugin', async (req) => {
+      const u = new URL(req.url);
+      if (u.pathname === '/preload.js') {
+        return new Response('console.log("sidecar-preload");', {
+          status: 200,
+          headers: { 'content-type': 'application/javascript', 'content-length': '29' },
+        });
+      }
+      return new Response('body { color: #000; }', {
+        status: 200,
+        headers: { 'content-type': 'text/css' },
+      });
+    });
+
+    const wrappedPluginHandler = protoHandlers.get('plugin');
+    const preloadRes = await wrappedPluginHandler({ url: 'plugin://swarm-board/preload.js' });
+    const preloadText = await preloadRes.text();
+    assert.ok(preloadText.includes('console.log("sidecar-preload");'));
+    assert.ok(preloadText.includes('__naweSidecar=1'));
+    assert.equal(preloadRes.headers.get('content-length'), null);
+
+    const cssRes = await wrappedPluginHandler({ url: 'plugin://swarm-board/styles.css' });
+    assert.equal(await cssRes.text(), 'body { color: #000; }');
+
+    // 验证 webContents dom-ready 遍历 framesInSubtree：仅注入 plugin:// 与 127.0.0.1 子帧，跳过主帧与外部 https://
+    const mainFrame = {
+      url: 'http://127.0.0.1:41234/',
+      framesInSubtree: [],
+      executeJavaScript(code) {
+        executed.push(['main', code]);
+        return Promise.resolve();
+      },
+    };
+    const pluginSubframe = {
+      url: 'plugin://swarm-board/index.html',
+      executeJavaScript(code) {
+        executed.push(['plugin', code]);
+        return Promise.resolve();
+      },
+    };
+    const loopbackSubframe = {
+      url: 'http://127.0.0.1:51234/index.html',
+      executeJavaScript(code) {
+        executed.push(['loopback', code]);
+        return Promise.resolve();
+      },
+    };
+    const externalSubframe = {
+      url: 'https://example.com/embed',
+      executeJavaScript(code) {
+        executed.push(['external', code]);
+        return Promise.resolve();
+      },
+    };
+    mainFrame.framesInSubtree = [mainFrame, pluginSubframe, loopbackSubframe, externalSubframe];
+
+    for (const fn of appListeners.get('web-contents-created') || []) {
+      fn({}, {
+        mainFrame,
+        on(ev, l) {
+          wcListeners.set(ev, l);
+        },
+      });
+    }
+    const onDomReady = wcListeners.get('dom-ready');
+    assert.ok(onDomReady);
+    onDomReady();
+
+    assert.deepEqual(
+      executed.map((x) => x[0]),
+      ['plugin', 'loopback']
+    );
+    assert.match(executed[0][1], /__naweSidecar=1/);
+  }
+
+  try {
+    await verifyMode((electron) => {
+      installMainHook(electron, nativeDict, {
+        sidecarPayloadSource: payloadSource,
+        framePreloadPath: framePreloadFile,
+      });
+      return electron;
+    });
+
+    await verifyMode((electron) =>
+      createElectronProxy(electron, nativeDict, {
+        noCache: true,
+        sidecarPayloadSource: payloadSource,
+        framePreloadPath: framePreloadFile,
+      })
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
